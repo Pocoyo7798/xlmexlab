@@ -155,6 +155,14 @@ class Actions(BaseModel):
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "size"}
             )
+        elif type(self) is SetTemperature:
+            action_dict = self.model_dump(
+                exclude={"action_name", "action_context", "duration", "pressure"}
+            )
+        elif type(self) in set([Add, MakeSolution, Stir]):
+            action_dict = self.model_dump(
+                exclude={"action_name", "action_context", "pressure"}
+            )
         else:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context"}
@@ -460,7 +468,7 @@ class PH(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one dimentionless value was found for the pH, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Add(ActionsWithChemicalAndConditions):
@@ -497,13 +505,13 @@ class Add(ActionsWithChemicalAndConditions):
         elif len(chemicals_info.chemical_list) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.dropwise = chemicals_info.dropwise[0]
-            list_of_actions.append(action.transform_into_pistachio())
+            list_of_actions.append(action.generate_dict())
         else:
             i = 0
             for chemical in chemicals_info.chemical_list:
                 action.material = chemical
                 action.dropwise = chemicals_info.dropwise[i]
-                list_of_actions.append(action.transform_into_pistachio())
+                list_of_actions.append(action.generate_dict())
                 i += 1
         return list_of_actions
 
@@ -534,7 +542,7 @@ class CollectLayer(Actions):
             action.layer = "organic"
         else:
             return []
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Concentrate(Actions):
@@ -543,7 +551,7 @@ class Concentrate(Actions):
         return [
             cls(
                 action_name="Concentrate", action_context=context
-            ).transform_into_pistachio()
+            ).generate_dict()
         ]
 
 
@@ -557,7 +565,7 @@ class Degas(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Degas", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class DrySolid(ActionsWithConditons):
@@ -577,7 +585,7 @@ class DrySolid(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="DrySolid", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class DrySolution(ActionsWithChemicalAndConditions):
@@ -608,7 +616,7 @@ class DrySolution(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Material found on DrySolution object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Extract(ActionsWithchemicals):
@@ -639,7 +647,7 @@ class Extract(ActionsWithchemicals):
             print(
                 "Warning: More than one Solvent found on DrySolution object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Filter(Actions):
@@ -677,7 +685,7 @@ class Filter(Actions):
             action.phase_to_keep = "precipitate"
         else:
             action.phase_to_keep = "filtrate"
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
     
 class Centrifuge(Actions):
     """
@@ -712,7 +720,7 @@ class Centrifuge(Actions):
             action.phase_to_keep = "filtrate"
         elif len(precipitate_results) > 0:
             action.phase_to_keep = "precipitate"
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class MakeSolution(ActionsWithChemicalAndConditions):
@@ -769,7 +777,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 if test is True:
                     action.dropwise = True
                     break
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Microwave(ActionsWithConditons):
@@ -782,7 +790,7 @@ class Microwave(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Microwave", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Partition(ActionsWithchemicals):
@@ -813,7 +821,7 @@ class Partition(ActionsWithchemicals):
             print(
                 "Warning: More than two Materials have been found on Partition object, only the first two were considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class PhaseSeparation(Actions):
@@ -835,14 +843,14 @@ class PhaseSeparation(Actions):
         elif len(centrifuge_results) > 0:
             return Centrifuge.generate_action(context, filtrate_parser, precipitate_parser)
         else:
-            return [action.transform_into_pistachio()]
+            return [action.generate_dict()]
 
 
 class Purify(Actions):
     @classmethod
     def generate_action(cls, context: str) -> List[Dict[str, Any]]:
         return [
-            cls(action_name="Purify", action_context=context).transform_into_pistachio()
+            cls(action_name="Purify", action_context=context).generate_dict()
         ]
 
 
@@ -883,8 +891,8 @@ class Quench(ActionsWithChemicalAndConditions):
             new_action: List[Dict[str, Any]] = PH.generate_action(
                 context, schemas, schema_parser, amount_parser, conditions_parser
             )
-            return [action.transform_into_pistachio()] + new_action
-        return [action.transform_into_pistachio()]
+            return [action.generate_dict()] + new_action
+        return [action.generate_dict()]
 
 
 class Recrystallize(ActionsWithChemicalAndConditions):
@@ -918,7 +926,7 @@ class Recrystallize(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Solvent found on Recrystallize object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Reflux(ActionsWithConditons):
@@ -932,7 +940,7 @@ class Reflux(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Reflux", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Stir(ActionsWithConditons):
@@ -949,7 +957,7 @@ class Stir(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         action_list: List[Dict[str, Any]] = []
         if action.duration is not None:
-            action_list.append(action.transform_into_pistachio())
+            action_list.append(action.generate_dict())
         return action_list
 
 
@@ -973,15 +981,15 @@ class SetTemperature(ActionsWithConditons):
         action_list: List[Dict[str, Any]] = []
         if action.temperature is None:
             if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
+                action_list.append(Wait(action_name="Wait", duration=action.duration).generate_dict())
         elif action.temperature.lower() == "reflux":
-            action_list.append(Reflux(action_name="Reflux", duration=action.duration).transform_into_pistachio())
+            action_list.append(Reflux(action_name="Reflux", duration=action.duration).generate_dict())
         elif len(microwave_parser.find_keywords(context)) > 0:
             return Microwave.generate_action(context, conditions_parser)
         else:
-            action_list.append(action.transform_into_pistachio())
+            action_list.append(action.generate_dict())
             if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
+                action_list.append(Wait(action_name="Wait", duration=action.duration).generate_dict())
         return action_list
 
 
@@ -1006,14 +1014,14 @@ class ReduceTemperature(ActionsWithConditons):
         if action.temperature is None:
             action.temperature == "room temperature"
         elif action.temperature.lower() == "reflux":
-            action_list.append(Reflux(action_name="Reflux", duration=action.duration).transform_into_pistachio())
+            action_list.append(Reflux(action_name="Reflux", duration=action.duration).generate_dict())
         elif len(microwave_parser.find_keywords(context)) > 0:
             return Microwave.generate_action(context, conditions_parser)
         else:
             if action.temperature is not None:
-                action_list.append(action.transform_into_pistachio())
+                action_list.append(action.generate_dict())
             if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
+                action_list.append(Wait(action_name="Wait", duration=action.duration).generate_dict())
         return action_list
 
 class Sonicate(ActionsWithConditons):
@@ -1026,7 +1034,7 @@ class Sonicate(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Sonicate", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Triturate(ActionsWithchemicals):
@@ -1054,7 +1062,7 @@ class Triturate(ActionsWithchemicals):
             print(
                 "Warning: More than one Solvent found on Triturate object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Wait(ActionsWithConditons):
@@ -1074,7 +1082,7 @@ class Wait(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         action_list: List[Dict[str, Any]] = []
         if action.duration is not None:
-            action_list.append(action.transform_into_pistachio())
+            action_list.append(action.generate_dict())
         return action_list
 
 
@@ -1101,12 +1109,12 @@ class Wash(ActionsWithchemicals):
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
-            list_of_actions.append(action.transform_into_pistachio())
+            list_of_actions.append(action.generate_dict())
         else:
             for material in chemicals_info.chemical_list:
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
-                list_of_actions.append(action.transform_into_pistachio())
+                list_of_actions.append(action.generate_dict())
         return list_of_actions
 
 
@@ -1135,7 +1143,7 @@ class Yield(ActionsWithchemicals):
             print(
                 "Warning: More than one Material found on Yield object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 ### Actions for Heterogeneous Catalysts
 
@@ -1705,7 +1713,7 @@ class PhaseSeparationSAC(Actions):
         elif len(centrifuge_results) > 0:
             return CentrifugeSAC.generate_action(context)
         else:
-            return [action.transform_into_pistachio()]
+            return [action.generate_dict()]
 
 class FilterSAC(Actions):
     """
@@ -1743,7 +1751,7 @@ class FilterSAC(Actions):
         else:
             action.phase_to_keep = "precipitate"
         
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 class CentrifugeSAC(Actions):
     """
@@ -1756,7 +1764,7 @@ class CentrifugeSAC(Actions):
         context: str,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Centrifugate", action_context=context)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class ChangeTemperature(ActionsWithConditons):
