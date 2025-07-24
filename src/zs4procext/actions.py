@@ -131,7 +131,7 @@ class Actions(BaseModel):
     
     def generate_dict(self) -> Dict[str, Any]:
         action_name: str = self.action_name
-        if type(self) in set([ChangeTemperature, Cool, CoolSAC]):
+        if type(self) in set([ChangeTemperature, Cool]):
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "pressure", "duration", "stirring_speed"}
             )
@@ -1816,7 +1816,7 @@ class ChangeTemperatureSAC(ActionsWithConditons):
             list_of_actions.append(new_action.generate_dict())
         return list_of_actions
 
-class Cool(ActionsWithConditons):
+"""class Cool(ActionsWithConditons):
     temperature: Optional[str] = None
     microwave: bool = False
     heat_ramp: Optional[str] = None
@@ -1839,9 +1839,9 @@ class Cool(ActionsWithConditons):
         else:
             if action.temperature is None:
                 action.temperature = "Cool"
-            return [action.generate_dict()]
+            return [action.generate_dict()]"""
         
-class CoolSAC(ActionsWithConditons):
+class Cool(ActionsWithConditons):
     temperature: Optional[str] = None
     microwave: bool = False
     heat_ramp: Optional[str] = None
@@ -2121,7 +2121,7 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "centrifugate": PhaseSeparationSAC,
     "filter": PhaseSeparationSAC,
     "concentrate": DryMaterial,
-    "cool": CoolSAC,
+    "cool": Cool,
     "heat": ChangeTemperatureSAC,
     "wash": WashSAC,
     "wait": WaitMaterial,
