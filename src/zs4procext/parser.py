@@ -1221,7 +1221,7 @@ MATERIALS_CHARACTERIZATION_REGISTRY: Dict[str, Any] = {
     "sample": {"words": ["sample", "catalyst", "zeolites", "samples", "zeolite", "material", "support"], "units": ["empty"], "limit_words": False, "unique": True},
     "yield": {"words": ["yield"], "units": ["%", "empty"],"limit_words": False,  "unique": True},
     "external_area": {"words": ["sext", "smes", "s mes", "Surface area Meso", "External", "area external"], "units": ["m2/g", "m2/g", "m2g-1", "m2 g-1", "m2.g-1"], "limit_words": False,  "unique": True},
-    "micropore_area": {"words": ["smic", "s mic", "bet area microporous", "area micropore"], "units": ["m2/g", "m2/g", "m2g-1", "m2 g-1"], "limit_words": False,  "unique": True},
+    "micropore_area": {"words": ["smic", "s mic", "bet area microporous", "area micropore"], "units": ["m2/g", "m2/g", "m2g-1", "m2 g-1", "m2.g-1"], "limit_words": False,  "unique": True},
     "surface_area": {"words": ["sbet", "Surface area BET", "Surface area", "bet area", "area total", "stotal", "s total"], "units": ["m2/g", "m2/g", "m2g-1", "m2.g-1", "m2 g-1"], "limit_words": False,  "unique": True},
     "micropore_volume": {"words": ["vmic", "v mic", "Pore volume Micro", "Micropore volume", "Microporous volume", "volume micro"], "units": ["cm3/g", "cm3g-1", "cm3.g-1", "cm3 g-1", "mm3/g", "mm3g-1", "mm3.g-1", "mm3 g-1", "ml/g"], "limit_words": False,  "unique": True},
     "mesopore_volume": {"words": ["vmes", "v mes", "Pore volume Meso", "Mesopore volume", "Vext", "volume meso"], "units": ["cm3/g", "cm3g-1", "cm3.g-1", "cm3 g-1", "mm3/g", "mm3g-1", "mm3.g-1", "mm3 g-1"],"limit_words": False,  "unique": True},
@@ -1233,7 +1233,7 @@ MATERIALS_CHARACTERIZATION_REGISTRY: Dict[str, Any] = {
     "b_l_ratio": {"words": ["b/l"], "units": ["empty"],"limit_words": False,  "unique": False},
     "l_b_ratio": {"words": ["l/b"], "units": ["empty"], "limit_words": False,  "unique": False},
     "time": {"words": ["time", "period", "t (min)"], "units": ["min", "h"],"limit_words": False,  "unique": True},
-    "temperature": {"words": ["t (k)", "temperature"], "units": ["k", "°c"],"limit_words": False,  "unique": True},
+    "temperature": {"words": ["t (k)", "temperature"], "units": ["k", "ºc", "°c"],"limit_words": False,  "unique": True},
     "crystallinity": {"words": ["crystallinity", "cristallinity"], "units": ["%", "empty"], "limit_words": False,  "unique": True},
     "Si": {"words": ["si", "nsi"], "units": ["wt%", "empty", "umol/g", "mmol/g"],"limit_words": True,  "unique": True},
     "Al": {"words": ["al", "nal"], "units": ["wt%", "empty", "umol/g", "mmol/g", "umol.g-1"],"limit_words": True, "unique": True},
@@ -1301,11 +1301,14 @@ class ImageParser(BaseModel):
 
                 parsed_data = json.loads(input_data)
 
+                outer_key = None
                 if isinstance(parsed_data, dict) and len(parsed_data) == 1:
                     only_key = next(iter(parsed_data))
                     if isinstance(parsed_data[only_key], dict):
+                        outer_key = only_key
                         parsed_data = parsed_data[only_key]
 
+                parsed_data = self._restructure_if_needed(parsed_data, outer_key=outer_key)
                 parsed_data = self._convert_na_to_null(parsed_data)
                 parsed_data = self._clean_keys(parsed_data)
                 self.data_dict = self._filter_na_points(parsed_data)
@@ -1313,6 +1316,32 @@ class ImageParser(BaseModel):
             except json.JSONDecodeError as e:
                 print(f"JSON parsing failed: {e}\nInput was:\n{input_data}")
                 self.data_dict = {}
+
+    
+    def _restructure_if_needed(self, data: dict, outer_key: str = None) -> dict:
+        if not isinstance(data, dict):
+            return data
+
+        inner_data = data
+        x_key = next((k for k, v in inner_data.items() if isinstance(v, list)), None)
+        if x_key is None:
+            return data
+
+        x_values = inner_data[x_key]
+        
+        restructured = {}
+        for k, v in inner_data.items():
+            if k == x_key:
+                continue
+            if isinstance(v, list) and len(v) == len(x_values):
+                # always use the same y_key = outer_key if present
+                y_key = outer_key if outer_key else k
+                restructured[k] = {
+                    x_key: x_values,
+                    y_key: v
+                }
+        
+        return restructured if restructured else data
 
     def _convert_na_to_null(self, data: Dict) -> Dict:
         def convert_list(vals):
