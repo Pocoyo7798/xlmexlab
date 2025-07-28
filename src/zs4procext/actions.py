@@ -119,11 +119,7 @@ class Actions(BaseModel):
     
     def generate_dict(self) -> Dict[str, Any]:
         action_name: str = self.action_name
-        if type(self) is Cool:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "pressure", "duration", "stirring_speed"}
-            )
-        elif type(self) in set([WaitMaterial, StirMaterial, WashSAC, Separate]):
+        if type(self) in set([WaitMaterial, StirMaterial, WashSAC, Separate]):
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "temperature"}
             )
