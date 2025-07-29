@@ -34,7 +34,6 @@ from zs4procext.actions import (
     AddMaterials,
     AddSAC,
     MakeSolutionSAC,
-    Cool,
     Crystallization,
     CollectLayer,
     DrySolution,
@@ -664,12 +663,7 @@ class ActionExtractorFromText(BaseModel):
                 print(action_name)
                 if action_name.lower() in stop_words:
                     break
-            elif action is ReduceTemperature:
-                new_action: List[Dict[str, Any]] = action.generate_action(
-                    context, self._condition_parser, self._microwave_parser
-                )
-                action_list.extend(new_action)
-            elif action in set([SetTemperature, Crystallization, Cool]):
+            elif action in set([SetTemperature, Crystallization, ReduceTemperature]):
                 new_action: List[Dict[str, Any]] = action.generate_action(
                     context, self._condition_parser, self._complex_parser, self._microwave_parser
                 )
