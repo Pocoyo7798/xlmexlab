@@ -257,7 +257,7 @@ class ActionExtractorFromText(BaseModel):
     def delete_dict_keys(action: Dict[str, Any], keys_list):
         for key in keys_list:
             try:
-                del action[key]
+                del action["content"][key]
             except KeyError:
                 pass
         return action
@@ -357,12 +357,12 @@ class ActionExtractorFromText(BaseModel):
                     i = i + 1
                 elif content["temperature"] in set(["heat", "cool"]):
                     temperature = content["temperature"]
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed"])
+                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
                     i = i + 1
                 elif content["temperature"] == temperature:
                     del action_list[i]
                 else:
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed"])
+                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
                     temperature = content["temperature"]
                     i = i + 1
             elif action["action"] in set(["Wash", "Separate"]):
@@ -492,11 +492,13 @@ class ActionExtractorFromText(BaseModel):
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
-                if new_temp.lower() == "reflux":
+                if new_temp is None:
+                    pass
+                elif new_temp.lower() == "reflux":
                     if content["atmosphere"] is not None:
-                        atmosphere = None
-                    else:
                         atmosphere = content["atmosphere"][0]
+                    else:
+                        atmosphere = None
                     new_action_list.append({'action': 'Reflux', 'content': {'duration': content["duration"], 'dean_stark': False, 'atmosphere': atmosphere}})
                 elif content["duration"] is not None:
                     new_action_list.append({'action': 'Wait', 'content': {'duration': content["duration"]}})
