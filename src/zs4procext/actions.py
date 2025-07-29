@@ -947,7 +947,7 @@ class SetTemperature(ActionsWithConditons):
     heat_ramp: Optional[str] = None
     duration: Optional[str] = None
     pressure: Optional[str] = None
-    atmosphere: Optional[str] = None
+    atmosphere: List[str] = []
     stirring_speed: Optional[str] = None
 
     @classmethod
@@ -961,7 +961,6 @@ class SetTemperature(ActionsWithConditons):
         action = cls(action_name="SetTemperature", action_context=context)
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         keywords_list = microwave_parser.find_keywords(context)
-        keywords_list = microwave_parser.find_keywords(context)
         if len(keywords_list) > 0:
             action.microwave = True
         return [action.generate_dict()]
@@ -972,30 +971,29 @@ class ReduceTemperature(ActionsWithConditons):
     """
 
     temperature: Optional[str] = None
+    microwave: bool = False
+    heat_ramp: Optional[str] = None
     duration: Optional[str] = None
+    pressure: Optional[str] = None
+    atmosphere: List[str] = []
+    stirring_speed: Optional[str] = None
 
     @classmethod
     def generate_action(
         cls,
         context: str,
         conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
         microwave_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser)
-        action_list: List[Dict[str, Any]] = []
+        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         if action.temperature is None:
-            action.temperature == "room temperature"
-        elif action.temperature.lower() == "reflux":
-            action_list.append(Reflux(action_name="Reflux", duration=action.duration).generate_dict())
-        elif len(microwave_parser.find_keywords(context)) > 0:
-            return Microwave.generate_action(context, conditions_parser)
-        else:
-            if action.temperature is not None:
-                action_list.append(action.generate_dict())
-            if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).generate_dict())
-        return action_list
+            action.temperature == "cool"
+        keywords_list = microwave_parser.find_keywords(context)
+        if len(keywords_list) > 0:
+            action.microwave = True
+        return [action.generate_dict()]
 
 class Sonicate(ActionsWithConditons):
     duration: Optional[str] = None
@@ -1739,35 +1737,6 @@ class CentrifugeSAC(Actions):
         action = cls(action_name="Centrifugate", action_context=context)
         return [action.generate_dict()]
 
-class Cool(ActionsWithConditons):
-    temperature: Optional[str] = None
-    microwave: bool = False
-    heat_ramp: Optional[str] = None
-    duration: Optional[str] = None
-    pressure: Optional[str] = None
-    stirring_speed: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        action = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        keywords_list = microwave_parser.find_keywords(context)
-        if len(keywords_list) > 0:
-            action.microwave = True
-        if action.temperature is None:
-            action.temperature = "Cool"
-        list_of_actions: List[Any] = []
-        list_of_actions.append(action.generate_dict())
-        if action.stirring_speed is not None:
-            new_action = StirMaterial(action_name="Stir", duration=action.duration, stirring_speed=action.stirring_speed)
-            list_of_actions.append(new_action.generate_dict())
-        elif action.duration is not None:
-            new_action = WaitMaterial(action_name="Wait", duration=action.duration)
-            list_of_actions.append(new_action.generate_dict())
-        return list_of_actions
-
 class SetAtmosphere(Actions):
     atmosphere: List[str] = []
     pressure: Optional[str] = None
@@ -1963,7 +1932,7 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "alkalinetreatment": AlkalineTreatment,
     "acidtreatment": AcidTreatment,
     "repeat": Repeat,
-    "cool": Cool,
+    "cool": ReduceTemperature,
     "heat": SetTemperature,
     "settemperature":  SetTemperature,
     "grind": Grind,
@@ -2005,7 +1974,7 @@ ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {
     "wait": WaitMaterial,
     "stir": StirMaterial,
     "repeat": Repeat,
-    "cool": Cool,
+    "cool": ReduceTemperature,
     "heat": SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
@@ -2019,7 +1988,7 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "centrifugate": PhaseSeparationSAC,
     "filter": PhaseSeparationSAC,
     "concentrate": DryMaterial,
-    "cool": Cool,
+    "cool": ReduceTemperature,
     "heat": SetTemperature,
     "wash": WashSAC,
     "wait": WaitMaterial,

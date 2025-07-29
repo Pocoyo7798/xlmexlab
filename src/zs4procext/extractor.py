@@ -404,6 +404,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp != initial_temp and new_temp is not None:
                     initial_temp = new_temp
                     new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp}})
@@ -451,6 +453,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp is None:
                     pass
                 elif new_temp.lower() == "reflux":
@@ -495,7 +499,7 @@ class ActionExtractorFromText(BaseModel):
                 if new_temp is None:
                     pass
                 elif new_temp.lower() == "reflux":
-                    if content["atmosphere"] is not None:
+                    if len(content["atmosphere"]) > 0:
                         atmosphere = content["atmosphere"][0]
                     else:
                         atmosphere = None
@@ -519,6 +523,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp != initial_temp and new_temp is not None:
                     initial_temp = new_temp
                     if action_name not in ["ThermalTreatment", "Dry"]:
@@ -534,7 +540,7 @@ class ActionExtractorFromText(BaseModel):
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
-                if content["atmosphere"] is not None:
+                if len(content["atmosphere"]) > 0:
                     new_action_list[-1] = {'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}}
                 elif content["stirring_speed"] is not None:
                     new_action_list.append({'action': 'Stir', 'content': {'duration':  content["duration"], 'stirring_speed': content["stirring_speed"]}})
