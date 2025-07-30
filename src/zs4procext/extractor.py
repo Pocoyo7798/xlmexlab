@@ -322,14 +322,15 @@ class ActionExtractorFromText(BaseModel):
             content = action["content"]
             try:
                 new_temp: str = content["temperature"]
-                if new_temp in set(["heat", "cool"]):
+                if action_name not in ["ThermalTreatment", "Dry", "Crystallization"]:
+                    initial_temp = new_temp
+                elif new_temp in set(["heat", "cool"]):
                     initial_temp = new_temp
                     new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp, 'microwave': False, "heat_ramp": None}})
                     del content["temperature"]
-                elif action_name not in ["ThermalTreatment", "Dry", "Crystallization"]:
-                    initial_temp = new_temp
                 elif new_temp != initial_temp and new_temp is not None:
                     initial_temp = new_temp
+                    new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp, 'microwave': False, "heat_ramp": None}})
                     del content["temperature"]
                 else:
                     del content["temperature"]
