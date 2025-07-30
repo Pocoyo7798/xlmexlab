@@ -533,7 +533,10 @@ class ActionExtractorFromText(BaseModel):
                 pass
             elif action_name == "SetTemperature":
                 if content["atmosphere"] is not None:
-                    new_action_list[-1] = {'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}}
+                    if new_temp is None:
+                        new_action_list.append({'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}})
+                    else:
+                        new_action_list[-1] = {'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}}
                 elif content["stirring_speed"] is not None:
                     new_action_list.append({'action': 'Stir', 'content': {'duration':  content["duration"], 'stirring_speed': content["stirring_speed"]}})
                 elif content["duration"] is not None:
