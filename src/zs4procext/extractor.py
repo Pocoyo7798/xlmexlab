@@ -311,18 +311,78 @@ class ActionExtractorFromText(BaseModel):
         return action_list
     
     @staticmethod
-    def correct_action_list(action_list: List[Dict[str, Any]]):
+    def correct_action_list(action_dict_list: List[Dict[str, Any]]):
+        new_action_list = []
+        initial_temp = None
+        add_new_solution = True
+        i_new_solution = 0
+        i = 0
+        for action in action_dict_list:
+            action_name = action["action"]
+            content = action["content"]
+            try:
+                new_temp: str = content["temperature"]
+                if new_temp in set(["heat", "cool"]):
+                    initial_temp = new_temp
+                    new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp, 'microwave': False, "heat_ramp": None}})
+                    del content["temperature"]
+                elif action_name not in ["ThermalTreatment", "Dry", "Crystallization"]:
+                    initial_temp = new_temp
+                elif new_temp != initial_temp and new_temp is not None:
+                    initial_temp = new_temp
+                    del content["temperature"]
+                else:
+                    del content["temperature"]
+            except KeyError:
+                pass
+            if action_name == "Add" and add_new_solution is True:
+                add_new_solution = False
+                new_action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
+                new_action_list.append(action)
+            elif action["action"] == "NewSolution":
+                add_new_solution = False
+                temperature = None
+                if i == len(action_dict_list) - 1:
+                    pass
+                elif action_dict_list[i + 1]["action"] not in set(["Add", "SetTemperature", "SetAtmosphere", "Repetition"]):
+                    pass
+                else:
+                    new_action_list.append(action)
+            elif action["action"] == "Repeat" and len(new_action_list) > 1:
+                pre_action = new_action_list[-1]
+                amount = float(action["content"]["amount"])
+                if pre_action["action"] =="Repeat":
+                    new_amount = float(pre_action["content"]["amount"])
+                    if amount < new_amount:
+                        new_action_list[-1] = action
+            elif action["action"] == "SetTemperature":
+                if content["duration"] is not None:
+                    new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
+            elif action["action"] in set(["Wash", "Separate"]):
+                add_new_solution = True
+                new_action_list.append(action)
+                i_new_solution = len(new_action_list)
+            elif action["action"] in set(["Crystallization", "Dry", "ThermalTreatment"]):
+                new_action_list.append(action)
+                i_new_solution = len(new_action_list)
+            else:
+                new_action_list.append(action)
+            i += 1
+        if len(new_action_list) > 1:
+            last_action: Dict[str, Any] = new_action_list[-1]
+            second_last_action: Dict[str, Any] = new_action_list[-2]
+            if last_action["action"] == "Wait" and second_last_action["action"] in set(["Dry", "Wait", "ThermalTreatment", "Wash", "Separate"]):
+                del new_action_list[-1]
+        return new_action_list
+    
+    @staticmethod
+    def correct_action_list2(action_list: List[Dict[str, Any]]):
         for action in action_list:
             print(action)
         i = 0
         temperature = None
         add_new_solution = True
         i_new_solution = 0
-        if len(action_list) > 1:
-            last_action: Dict[str, Any] = action_list[-1]
-            second_last_action: Dict[str, Any] = action_list[-1]
-            if last_action["action"] == "Wait" and second_last_action["action"] in set(["Dry", "Wait", "ThermalTreatment", "Wash", "Separate"]):
-                del action_list[-1]
         while i < len(action_list):
             action = action_list[i]
             if action["action"] == "Add" and add_new_solution is True:

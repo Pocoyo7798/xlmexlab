@@ -1375,7 +1375,7 @@ class Separate(ActionsWithConditons):
         elif len(centrifuge_results) > 0:
             action.method = "centrifugation"
         elif len(evaporation_results) > 0:
-            action = DryMaterial(action_name = "Dry", temperature=action.temperature)
+            action = Dry(action_name = "Dry", temperature=action.temperature)
         return [action.generate_dict()]
         
 
@@ -1494,7 +1494,7 @@ class WaitMaterial(ActionsWithConditons):
             list_of_actions.append(action.generate_dict())
         return list_of_actions
 
-class DryMaterial(ActionsWithConditons):
+class Dry(ActionsWithConditons):
     temperature: Optional[str] = None
     duration: Optional[str] = None
     atmosphere: List[str] = []
@@ -1503,7 +1503,7 @@ class DryMaterial(ActionsWithConditons):
     def generate_action(
         cls, context: str, conditions_parser: ParametersParser
     ) -> List[Dict[str, Any]]:
-        action: DryMaterial = cls(action_name="Dry", action_context=context)
+        action: Dry = cls(action_name="Dry", action_context=context)
         action.validate_conditions(conditions_parser)
         return [action.generate_dict()]
 
@@ -1923,7 +1923,7 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "sonicate": Stir,
     "wash": WashMaterial,
     "wait": WaitMaterial,
-    "dry": DryMaterial,
+    "dry": Dry,
     "calcination": ThermalTreatment,
     "stir": StirMaterial,
     "ionexchange": IonExchange,
@@ -1941,9 +1941,9 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "quench": WashMaterial,
     "thermaltreatment": ThermalTreatment,
     "posttreatment": ThermalTreatment, 
-    "drysolid": DryMaterial,
-    "drysolution": DryMaterial,
-    "dry": DryMaterial,
+    "drysolid": Dry,
+    "drysolution": Dry,
+    "dry": Dry,
     "concentrate": Separate,
     "centrifugate": Separate,
     "filter": Separate,
@@ -1987,15 +1987,15 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "separate": PhaseSeparationSAC,
     "centrifugate": PhaseSeparationSAC,
     "filter": PhaseSeparationSAC,
-    "concentrate": DryMaterial,
+    "concentrate": Dry,
     "cool": ReduceTemperature,
     "heat": SetTemperature,
     "wash": WashSAC,
     "wait": WaitMaterial,
     "reflux": SetTemperature,
-    "drysolid": DryMaterial,
-    "drysolution": DryMaterial,
-    "dry": DryMaterial,
+    "drysolid": Dry,
+    "drysolution": Dry,
+    "dry": Dry,
     "posttreatment": ThermalTreatment,
     "thermaltreatment": ThermalTreatment,
     "stir": StirMaterial,
