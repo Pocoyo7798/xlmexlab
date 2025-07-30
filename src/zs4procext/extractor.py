@@ -34,7 +34,6 @@ from zs4procext.actions import (
     AddMaterials,
     AddSAC,
     MakeSolutionSAC,
-    Cool,
     Crystallization,
     CollectLayer,
     DrySolution,
@@ -257,7 +256,7 @@ class ActionExtractorFromText(BaseModel):
     def delete_dict_keys(action: Dict[str, Any], keys_list):
         for key in keys_list:
             try:
-                del action[key]
+                del action["content"][key]
             except KeyError:
                 pass
         return action
@@ -357,12 +356,12 @@ class ActionExtractorFromText(BaseModel):
                     i = i + 1
                 elif content["temperature"] in set(["heat", "cool"]):
                     temperature = content["temperature"]
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed"])
+                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
                     i = i + 1
                 elif content["temperature"] == temperature:
                     del action_list[i]
                 else:
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed"])
+                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
                     temperature = content["temperature"]
                     i = i + 1
             elif action["action"] in set(["Wash", "Separate"]):
@@ -404,6 +403,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp != initial_temp and new_temp is not None:
                     initial_temp = new_temp
                     new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp}})
@@ -451,6 +452,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp is None:
                     pass
                 elif new_temp.lower() == "reflux":
@@ -492,11 +495,13 @@ class ActionExtractorFromText(BaseModel):
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
-                if new_temp.lower() == "reflux":
-                    if content["atmosphere"] is not None:
-                        atmosphere = None
-                    else:
+                if new_temp is None:
+                    pass
+                elif new_temp.lower() == "reflux":
+                    if len(content["atmosphere"]) > 0:
                         atmosphere = content["atmosphere"][0]
+                    else:
+                        atmosphere = None
                     new_action_list.append({'action': 'Reflux', 'content': {'duration': content["duration"], 'dean_stark': False, 'atmosphere': atmosphere}})
                 elif content["duration"] is not None:
                     new_action_list.append({'action': 'Wait', 'content': {'duration': content["duration"]}})
@@ -517,6 +522,8 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 elif new_temp.lower() in ["ice-bath", "ice bath"]:
                     new_temp = "0 °C"
+                elif new_temp.lower() == "cool":
+                    new_temp = "room temperature"
                 if new_temp != initial_temp and new_temp is not None:
                     initial_temp = new_temp
                     if action_name not in ["ThermalTreatment", "Dry"]:
@@ -532,7 +539,7 @@ class ActionExtractorFromText(BaseModel):
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
-                if content["atmosphere"] is not None:
+                if len(content["atmosphere"]) > 0:
                     if new_temp is None:
                         new_action_list.append({'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}})
                     else:
@@ -659,12 +666,7 @@ class ActionExtractorFromText(BaseModel):
                 print(action_name)
                 if action_name.lower() in stop_words:
                     break
-            elif action is ReduceTemperature:
-                new_action: List[Dict[str, Any]] = action.generate_action(
-                    context, self._condition_parser, self._microwave_parser
-                )
-                action_list.extend(new_action)
-            elif action in set([SetTemperature, Crystallization, Cool]):
+            elif action in set([SetTemperature, Crystallization, ReduceTemperature]):
                 new_action: List[Dict[str, Any]] = action.generate_action(
                     context, self._condition_parser, self._complex_parser, self._microwave_parser
                 )
