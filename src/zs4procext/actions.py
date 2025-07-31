@@ -119,23 +119,15 @@ class Actions(BaseModel):
     
     def generate_dict(self) -> Dict[str, Any]:
         action_name: str = self.action_name
-        if type(self) in set([WaitMaterial, StirMaterial, WashSAC, Separate]):
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "temperature"}
-            )
-        elif type(self) is AddMaterials:
+        if type(self) is AddMaterials:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "atmosphere", "temperature"}
-            )
-        elif type(self) in  set([AddSAC, MakeSolutionSAC]):
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "temperature"}
             )
         elif type(self) is Grind:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "size"}
             )
-        elif type(self) in set([Add, MakeSolution, Stir]):
+        elif type(self) in set([Add, MakeSolution]):
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "pressure"}
             )
@@ -397,7 +389,7 @@ class Treatment(ActionsWithChemicalAndConditions):
             new_sample: Dict[str, Any] = {'action': 'Add', 'content': {'material': {'name': 'sample', 'quantity': ['1 g'], 'concentration': []}}, 'dropwise': False, 'duration': None, 'ph': None}
             list_of_actions.append(new_sample)
         if action.duration is not None:
-            new_action = StirMaterial(action_name="Stir", duration=action.duration)
+            new_action = Stir(action_name="Stir", duration=action.duration)
             list_of_actions.append(new_action.generate_dict())
         list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
@@ -918,23 +910,24 @@ class Reflux(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         return [action.generate_dict()]
 
-
+    
 class Stir(ActionsWithConditons):
     duration: Optional[str] = None
+    stirring_speed: Optional[str] = None
     temperature: Optional[str] = None
     atmosphere: List[str] = []
     pressure: Optional[str] = None
-
+    
     @classmethod
     def generate_action(
-        cls, context: str, conditions_parser: ParametersParser
+        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
     ) -> List[Dict[str, Any]]:
-        action = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser)
-        action_list: List[Dict[str, Any]] = []
+        action: Stir = cls(action_name="Stir", action_context=context)
+        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        list_of_actions: List[Any] = []
         if action.duration is not None:
-            action_list.append(action.generate_dict())
-        return action_list
+            list_of_actions.append(action.generate_dict())
+        return list_of_actions
 
 
 class SetTemperature(ActionsWithConditons):
@@ -1477,22 +1470,6 @@ class WashSAC(ActionsWithChemicalAndConditions):
                     list_of_actions.append(action.generate_dict())
         return list_of_actions
 
-class WaitMaterial(ActionsWithConditons):
-    duration: Optional[str] = None
-    temperature: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser
-    ) -> List[Dict[str, Any]]:
-        action: WaitMaterial = cls(action_name="Wait", action_context=context)
-        action.validate_conditions(conditions_parser)
-        list_of_actions: List[Any] = []
-        if action.temperature is not None:
-            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
-        if action.duration is not None:
-            list_of_actions.append(action.generate_dict())
-        return list_of_actions
 
 class Dry(ActionsWithConditons):
     temperature: Optional[str] = None
@@ -1521,24 +1498,6 @@ class ThermalTreatment(ActionsWithConditons):
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         return [action.generate_dict()]
 
-class StirMaterial(ActionsWithConditons):
-    duration: Optional[str] = None
-    stirring_speed: Optional[str] = None
-    temperature: Optional[str] = None
-    
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
-    ) -> List[Dict[str, Any]]:
-        action: StirMaterial = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        list_of_actions: List[Any] = []
-        if action.temperature is not None:
-            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
-        if action.duration is not None:
-            list_of_actions.append(action.generate_dict())
-        return list_of_actions
-    
 class SonicateMaterial(ActionsWithConditons):
     duration: Optional[str] = None
     stirring_speed: Optional[str] = None
@@ -1548,7 +1507,7 @@ class SonicateMaterial(ActionsWithConditons):
     def generate_action(
         cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
     ) -> List[Dict[str, Any]]:
-        action: StirMaterial = cls(action_name="Stir", action_context=context)
+        action: Stir = cls(action_name="Stir", action_context=context)
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         list_of_actions: List[Any] = []
         if action.temperature is not None:
@@ -1922,10 +1881,10 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "separate": Separate,
     "sonicate": Stir,
     "wash": WashMaterial,
-    "wait": WaitMaterial,
+    "wait": Wait,
     "dry": Dry,
     "calcination": ThermalTreatment,
-    "stir": StirMaterial,
+    "stir": Stir,
     "ionexchange": IonExchange,
     "ion-exchange": IonExchange,
     "ion exchange": IonExchange,
@@ -1971,8 +1930,8 @@ ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {
     "newmixture": NewSolution,
     "separate": Separate,
     "wash": WashMaterial,
-    "wait": WaitMaterial,
-    "stir": StirMaterial,
+    "wait": Wait,
+    "stir": Stir,
     "repeat": Repeat,
     "cool": ReduceTemperature,
     "heat": SetTemperature,
@@ -1991,14 +1950,14 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "cool": ReduceTemperature,
     "heat": SetTemperature,
     "wash": WashSAC,
-    "wait": WaitMaterial,
+    "wait": Wait,
     "reflux": SetTemperature,
     "drysolid": Dry,
     "drysolution": Dry,
     "dry": Dry,
     "posttreatment": ThermalTreatment,
     "thermaltreatment": ThermalTreatment,
-    "stir": StirMaterial,
+    "stir": Stir,
     "sonicate": Sonicate,
     "quench": Quench,
     "settemperature": SetTemperature,

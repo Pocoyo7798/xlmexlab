@@ -47,7 +47,7 @@ from zs4procext.actions import (
     Separate,
     SetTemperature,
     SonicateMaterial,
-    StirMaterial,
+    Stir,
     ThermalTreatment,
     Transfer,
     WashMaterial,
@@ -342,7 +342,7 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(action)
             elif action["action"] == "NewSolution":
                 add_new_solution = False
-                temperature = None
+                initial_temp = None
                 if i == len(action_dict_list) - 1:
                     pass
                 elif action_dict_list[i + 1]["action"] not in set(["Add", "SetTemperature", "SetAtmosphere", "Repetition"]):
@@ -366,6 +366,8 @@ class ActionExtractorFromText(BaseModel):
             elif action["action"] in set(["Crystallization", "Dry", "ThermalTreatment"]):
                 new_action_list.append(action)
                 i_new_solution = len(new_action_list)
+            elif action["action"] == "Stir":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
             else:
                 new_action_list.append(action)
             i += 1
@@ -496,6 +498,8 @@ class ActionExtractorFromText(BaseModel):
                 pass
             elif action_name == "SetTemperature":
                 pass
+            elif action_name == "Stir":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["stirring_speed", "pressure"]))
             else:
                 new_action_list.append(action)
         return new_action_list
@@ -555,6 +559,8 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(new_action)
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
+            elif action_name == "Stir":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["stirring_speed", "pressure"]))
             elif action_name == "SetTemperature":
                 if new_temp is None:
                     pass
@@ -599,6 +605,8 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append(action)
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
+            elif action["action"] == "Stir":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     if new_temp is None:
@@ -732,7 +740,7 @@ class ActionExtractorFromText(BaseModel):
                     context, self._condition_parser, self._complex_parser, self._microwave_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([ThermalTreatment, StirMaterial, SonicateMaterial]):
+            elif action in set([ThermalTreatment, Stir, SonicateMaterial]):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
             elif action in set([MakeSolution, Add, Quench]):
