@@ -514,42 +514,27 @@ class Evaluator(BaseModel):
             count += 1
             i += 1
         return self.evaluate(true_positive, false_positive, false_negative)
-
-    def evaluate_extractor_keys(self, test_dataset_path: str):
-        with open(self.reference_dataset_path, "r") as f:
-            reference_dataset: List[str] = f.readlines()
-        with open(test_dataset_path, "r") as f:
-            test_dataset: List[str] = f.readlines()
-        tp: int = 0
-        fp: int = 0
-        fn: int = 0
-        i : int = 0
-        for data in test_dataset:
-            data_dict: Dict[str, Any] = ast.literal_eval(data)
-            ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
-            data_keys: List[str] =  list(data_dict.keys())
-            ref_data_keys: List[str] =  list(ref_data_dict.keys())
-            evaluation_results:  Dict[str, Any]  = self.evaluate_string_list(data_keys, ref_data_keys)
-            tp += evaluation_results["true_positive"]
-            fp += evaluation_results["false_positive"]
-            fn += evaluation_results["false_negative"]
-            i += 1
-        return self.evaluate(tp, fp, fn)
     
-    def evaluate_extractor_data(self, test_dataset_path: str):
-        with open(self.reference_dataset_path, "r") as f:
-            reference_dataset: List[str] = f.readlines()
-        with open(test_dataset_path, "r") as f:
-            test_dataset: List[str] = f.readlines()
+    def evaluate_dict_data(self, dictionary: Dict[str, Any], ref_dictionary: Dict[str, Any], threshold: float = 0.8):
         tp: int = 0
         fp: int = 0
         fn: int = 0
-        i : int = 0
-        for data in test_dataset:
-            data_dict: Dict[str, Any] = ast.literal_eval(data)
-            ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
-            test_set: Set[str] = set(data_dict)
-            ref_set = set()
+        keys: List[str] = list(dictionary.keys())
+        ref_keys: List[str] = list(ref_dictionary.keys())
+        for key in keys:
+            try:
+                data_list: List[str] = dictionary[key]
+                ref_data_list: List[str] = ref_dictionary[key]
+                evaluation_results: Dict[str, Any] = self.evaluate_string_list(data_list, ref_data_list, threshold= threshold)
+                tp += evaluation_results["true_positive"]
+                fp += evaluation_results["false_positive"]
+                fn += evaluation_results["false_negative"]
+                ref_keys.remove(key)
+            except KeyError:
+                fp += len(dictionary[key])
+        for key in ref_keys:
+            fn += len(ref_dictionary[key])
+        return {"true_positive": tp, "false_positive": fp, "false_negative": fn}
     
     def verify_dict_in_list(self, dictionary: Dict[str, Any], dictionary_list: List[Dict[str, Any]], threshold: float = 0.8):
         dictionary_keys = list(dictionary.keys())
@@ -560,7 +545,7 @@ class Evaluator(BaseModel):
             for key in dictionary_keys:
                 try:
                     dictionary_value: List[str] = dictionary[key]
-                    entry_value = entry[key]
+                    entry_value = entry[key].copy()
                     comparison_results: Dict[str, Any] = self.evaluate_string_list(dictionary_value, entry_value, threshold= threshold)
                     if comparison_results["false_negative"] == 0 and comparison_results["false_positive"] == 0:
                         test = True
@@ -573,7 +558,7 @@ class Evaluator(BaseModel):
             i += 1
         return final_index
     
-    def evaluate_dcitionary_list(self, test_dictionaries: List[Dict[str, Any]], ref_dictionaries: List[Dict[str, Any]]):
+    def evaluate_dict_list(self, test_dictionaries: List[Dict[str, Any]], ref_dictionaries: List[Dict[str, Any]], threshold: float = 0.8):
         tp_keys: int = 0
         fp_keys: int = 0
         fn_keys: int = 0
@@ -582,16 +567,32 @@ class Evaluator(BaseModel):
         fn_data: int = 0
         for dictionary in test_dictionaries:
             dictionary_keys = list(dictionary.keys())
-            index = self.verify_dict_in_list(dictionary, ref_dictionaries)
+            index = self.verify_dict_in_list(dictionary, ref_dictionaries, threshold=threshold)
             if index is None:
                 fp_keys += len(dictionary_keys)
                 for key in dictionary_keys:
                     fp_data += len(dictionary[key])
             else:
-                ref_dictionary = ref_dictionaries[index].copy()
+                ref_dictionary = ref_dictionaries[index]
+                ref_dictionary = ref_dictionaries[index]
+                ref_data_keys = list(ref_dictionary.keys())
+                evaluation_keys:  Dict[str, Any]  = self.evaluate_string_list(dictionary_keys, ref_data_keys, threshold=threshold)
+                tp_keys += evaluation_keys["true_positive"]
+                fp_keys += evaluation_keys["false_positive"]
+                fn_keys += evaluation_keys["false_negative"]
+                evaluation_data: Dict[str, Any]  = self.evaluate_dict_data(dictionary, ref_dictionary, threshold=threshold)
+                tp_data += evaluation_data["true_positive"]
+                fp_data += evaluation_data["false_positive"]
+                fn_data += evaluation_data["false_negative"]
                 del ref_dictionaries[index]
-
-    def evaluate_table_extractor(self, test_dataset_path: str):
+        for dictionary in ref_dictionaries:
+            dict_keys: List[str] = list(dictionary.keys())
+            fn_keys += len(dict_keys)
+            for key in dict_keys:
+                fn_data += len(dictionary[key])
+        return {"keys_true_positive": tp_keys, "keys_false_positive": fp_keys, "keys_false_negative": fn_keys, "data_true_positive": tp_data, "data_false_positive": fp_data, "data_false_negative": fn_data}
+    
+    def evaluate_table_extractor(self, test_dataset_path: str, threshold: float = 0.8):
         with open(self.reference_dataset_path, "r") as f:
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
@@ -608,7 +609,15 @@ class Evaluator(BaseModel):
             ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
             test_results: List[Dict[str, Any]] = data_dict["data"]
             ref_results: List[Dict[str, Any]] = ref_data_dict["data"]
-            self.evaluate_dict_lists(test_results, ref_results)
+            evaluation_results: Dict[str, int]= self.evaluate_dict_list(test_results, ref_results, threshold=threshold)
+            tp_keys += evaluation_results["keys_true_positive"]
+            fp_keys += evaluation_results["keys_false_positive"]
+            fn_keys += evaluation_results["keys_false_negative"]
+            tp_data += evaluation_results["data_true_positive"]
+            fp_data += evaluation_results["data_false_positive"]
+            fn_data += evaluation_results["data_false_negative"]
+            i += 1
+        return {"keys": self.evaluate(tp_keys, fp_keys, fn_keys), "data": self.evaluate(tp_data, fp_data, fn_data)}
 
 CHEMICALS_REGISTRY = {"solution": "",
                       "powder": "",

@@ -116,44 +116,20 @@ class Actions(BaseModel):
     action_name: str = ""
     action_context: str = ""
     type: ClassVar[Optional[str]] = None
-
-    def transform_into_pistachio(self) -> Dict[str, Any]:
-        action_name: str = self.action_name
-        if type(self) is SetTemperature:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "duration", "pressure"}
-            )
-        else:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "pressure"}
-            )
-        return {"action": action_name, "content": action_dict}
     
     def generate_dict(self) -> Dict[str, Any]:
         action_name: str = self.action_name
-        if type(self) in set([ChangeTemperature, Cool, CoolSAC]):
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "pressure", "duration", "stirring_speed"}
-            )
-        elif type(self) is ChangeTemperatureSAC:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "pressure", "duration", "stirring_speed", "atmosphere"}
-            )
-        elif type(self) in set([WaitMaterial, StirMaterial, WashSAC, Separate]):
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "temperature"}
-            )
-        elif type(self) is AddMaterials:
+        if type(self) is AddMaterials:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "atmosphere", "temperature"}
-            )
-        elif type(self) in  set([AddSAC, MakeSolutionSAC]):
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "temperature"}
             )
         elif type(self) is Grind:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "size"}
+            )
+        elif type(self) in set([Add, MakeSolution]):
+            action_dict = self.model_dump(
+                exclude={"action_name", "action_context", "pressure"}
             )
         else:
             action_dict = self.model_dump(
@@ -407,13 +383,13 @@ class Treatment(ActionsWithChemicalAndConditions):
                     new_action: Actions = AddMaterials(action_name="Add", material=solution)
                     list_of_actions.append(new_action.generate_dict())
         if action.temperature is not None:
-            new_action = ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature)
+            new_action = SetTemperature(action_name="SetTemperature", temperature=action.temperature)
             list_of_actions.append(new_action.generate_dict())
         if len(concentration) > 0:
             new_sample: Dict[str, Any] = {'action': 'Add', 'content': {'material': {'name': 'sample', 'quantity': ['1 g'], 'concentration': []}}, 'dropwise': False, 'duration': None, 'ph': None}
             list_of_actions.append(new_sample)
         if action.duration is not None:
-            new_action = StirMaterial(action_name="Stir", duration=action.duration)
+            new_action = Stir(action_name="Stir", duration=action.duration)
             list_of_actions.append(new_action.generate_dict())
         list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
@@ -460,7 +436,7 @@ class PH(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one dimentionless value was found for the pH, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Add(ActionsWithChemicalAndConditions):
@@ -497,13 +473,13 @@ class Add(ActionsWithChemicalAndConditions):
         elif len(chemicals_info.chemical_list) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.dropwise = chemicals_info.dropwise[0]
-            list_of_actions.append(action.transform_into_pistachio())
+            list_of_actions.append(action.generate_dict())
         else:
             i = 0
             for chemical in chemicals_info.chemical_list:
                 action.material = chemical
                 action.dropwise = chemicals_info.dropwise[i]
-                list_of_actions.append(action.transform_into_pistachio())
+                list_of_actions.append(action.generate_dict())
                 i += 1
         return list_of_actions
 
@@ -534,7 +510,7 @@ class CollectLayer(Actions):
             action.layer = "organic"
         else:
             return []
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Concentrate(Actions):
@@ -543,7 +519,7 @@ class Concentrate(Actions):
         return [
             cls(
                 action_name="Concentrate", action_context=context
-            ).transform_into_pistachio()
+            ).generate_dict()
         ]
 
 
@@ -557,7 +533,7 @@ class Degas(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Degas", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class DrySolid(ActionsWithConditons):
@@ -577,7 +553,7 @@ class DrySolid(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="DrySolid", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class DrySolution(ActionsWithChemicalAndConditions):
@@ -608,7 +584,7 @@ class DrySolution(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Material found on DrySolution object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Extract(ActionsWithchemicals):
@@ -639,7 +615,7 @@ class Extract(ActionsWithchemicals):
             print(
                 "Warning: More than one Solvent found on DrySolution object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Filter(Actions):
@@ -677,7 +653,7 @@ class Filter(Actions):
             action.phase_to_keep = "precipitate"
         else:
             action.phase_to_keep = "filtrate"
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
     
 class Centrifuge(Actions):
     """
@@ -712,7 +688,7 @@ class Centrifuge(Actions):
             action.phase_to_keep = "filtrate"
         elif len(precipitate_results) > 0:
             action.phase_to_keep = "precipitate"
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class MakeSolution(ActionsWithChemicalAndConditions):
@@ -769,7 +745,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 if test is True:
                     action.dropwise = True
                     break
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Microwave(ActionsWithConditons):
@@ -782,7 +758,7 @@ class Microwave(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Microwave", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Partition(ActionsWithchemicals):
@@ -813,7 +789,7 @@ class Partition(ActionsWithchemicals):
             print(
                 "Warning: More than two Materials have been found on Partition object, only the first two were considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class PhaseSeparation(Actions):
@@ -835,14 +811,14 @@ class PhaseSeparation(Actions):
         elif len(centrifuge_results) > 0:
             return Centrifuge.generate_action(context, filtrate_parser, precipitate_parser)
         else:
-            return [action.transform_into_pistachio()]
+            return [action.generate_dict()]
 
 
 class Purify(Actions):
     @classmethod
     def generate_action(cls, context: str) -> List[Dict[str, Any]]:
         return [
-            cls(action_name="Purify", action_context=context).transform_into_pistachio()
+            cls(action_name="Purify", action_context=context).generate_dict()
         ]
 
 
@@ -883,8 +859,8 @@ class Quench(ActionsWithChemicalAndConditions):
             new_action: List[Dict[str, Any]] = PH.generate_action(
                 context, schemas, schema_parser, amount_parser, conditions_parser
             )
-            return [action.transform_into_pistachio()] + new_action
-        return [action.transform_into_pistachio()]
+            return [action.generate_dict()] + new_action
+        return [action.generate_dict()]
 
 
 class Recrystallize(ActionsWithChemicalAndConditions):
@@ -918,7 +894,7 @@ class Recrystallize(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Solvent found on Recrystallize object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Reflux(ActionsWithConditons):
@@ -932,25 +908,26 @@ class Reflux(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Reflux", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
-
+    
 class Stir(ActionsWithConditons):
     duration: Optional[str] = None
+    stirring_speed: Optional[str] = None
     temperature: Optional[str] = None
     atmosphere: List[str] = []
     pressure: Optional[str] = None
-
+    
     @classmethod
     def generate_action(
-        cls, context: str, conditions_parser: ParametersParser
+        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
     ) -> List[Dict[str, Any]]:
-        action = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser)
-        action_list: List[Dict[str, Any]] = []
+        action: Stir = cls(action_name="Stir", action_context=context)
+        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        list_of_actions: List[Any] = []
         if action.duration is not None:
-            action_list.append(action.transform_into_pistachio())
-        return action_list
+            list_of_actions.append(action.generate_dict())
+        return list_of_actions
 
 
 class SetTemperature(ActionsWithConditons):
@@ -959,31 +936,27 @@ class SetTemperature(ActionsWithConditons):
     """
 
     temperature: Optional[str] = None
+    microwave: bool = False
+    heat_ramp: Optional[str] = None
     duration: Optional[str] = None
+    pressure: Optional[str] = None
+    atmosphere: List[str] = []
+    stirring_speed: Optional[str] = None
 
     @classmethod
     def generate_action(
         cls,
         context: str,
         conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
         microwave_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser)
-        action_list: List[Dict[str, Any]] = []
-        if action.temperature is None:
-            if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
-        elif action.temperature.lower() == "reflux":
-            action_list.append(Reflux(action_name="Reflux", duration=action.duration).transform_into_pistachio())
-        elif len(microwave_parser.find_keywords(context)) > 0:
-            return Microwave.generate_action(context, conditions_parser)
-        else:
-            action_list.append(action.transform_into_pistachio())
-            if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
-        return action_list
-
+        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        keywords_list = microwave_parser.find_keywords(context)
+        if len(keywords_list) > 0:
+            action.microwave = True
+        return [action.generate_dict()]
 
 class ReduceTemperature(ActionsWithConditons):
     """
@@ -991,30 +964,29 @@ class ReduceTemperature(ActionsWithConditons):
     """
 
     temperature: Optional[str] = None
+    microwave: bool = False
+    heat_ramp: Optional[str] = None
     duration: Optional[str] = None
+    pressure: Optional[str] = None
+    atmosphere: List[str] = []
+    stirring_speed: Optional[str] = None
 
     @classmethod
     def generate_action(
         cls,
         context: str,
         conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
         microwave_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser)
-        action_list: List[Dict[str, Any]] = []
+        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         if action.temperature is None:
-            action.temperature == "room temperature"
-        elif action.temperature.lower() == "reflux":
-            action_list.append(Reflux(action_name="Reflux", duration=action.duration).transform_into_pistachio())
-        elif len(microwave_parser.find_keywords(context)) > 0:
-            return Microwave.generate_action(context, conditions_parser)
-        else:
-            if action.temperature is not None:
-                action_list.append(action.transform_into_pistachio())
-            if action.duration is not None:
-                action_list.append(Wait(action_name="Wait", duration=action.duration).transform_into_pistachio())
-        return action_list
+            action.temperature == "cool"
+        keywords_list = microwave_parser.find_keywords(context)
+        if len(keywords_list) > 0:
+            action.microwave = True
+        return [action.generate_dict()]
 
 class Sonicate(ActionsWithConditons):
     duration: Optional[str] = None
@@ -1026,7 +998,7 @@ class Sonicate(ActionsWithConditons):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Sonicate", action_context=context)
         action.validate_conditions(conditions_parser)
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Triturate(ActionsWithchemicals):
@@ -1054,7 +1026,7 @@ class Triturate(ActionsWithchemicals):
             print(
                 "Warning: More than one Solvent found on Triturate object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 
 class Wait(ActionsWithConditons):
@@ -1074,7 +1046,7 @@ class Wait(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         action_list: List[Dict[str, Any]] = []
         if action.duration is not None:
-            action_list.append(action.transform_into_pistachio())
+            action_list.append(action.generate_dict())
         return action_list
 
 
@@ -1101,12 +1073,12 @@ class Wash(ActionsWithchemicals):
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
-            list_of_actions.append(action.transform_into_pistachio())
+            list_of_actions.append(action.generate_dict())
         else:
             for material in chemicals_info.chemical_list:
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
-                list_of_actions.append(action.transform_into_pistachio())
+                list_of_actions.append(action.generate_dict())
         return list_of_actions
 
 
@@ -1135,7 +1107,7 @@ class Yield(ActionsWithchemicals):
             print(
                 "Warning: More than one Material found on Yield object, only the first one was considered"
             )
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 ### Actions for Heterogeneous Catalysts
 
@@ -1184,7 +1156,7 @@ class MakeSolutionSAC(ActionsWithChemicalAndConditions):
                     break
         list_of_actions: List[Dict[str, Any]] = []
         if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
+            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
         list_of_actions.append(action.generate_dict())
         return list_of_actions
 
@@ -1226,7 +1198,7 @@ class AddSAC(ActionsWithChemicalAndConditions):
                 )
         list_of_actions: List[Dict[str, Any]] = []
         if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
+            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
         if len(chemicals_info.chemical_list) == 0:
             pass
         elif len(chemicals_info.chemical_list[0].name.lower()) < 2:
@@ -1288,7 +1260,7 @@ class AddMaterials(ActionsWithChemicalAndConditions):
                 )
         list_of_actions: List[Dict[str, Any]] = []
         if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
+            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
         if action.atmosphere != []:
             list_of_actions.append(SetAtmosphere(action_name="SetAtmosphere", atmosphere= action.atmosphere).generate_dict())
         if len(chemicals_info.chemical_list) == 0:
@@ -1396,7 +1368,7 @@ class Separate(ActionsWithConditons):
         elif len(centrifuge_results) > 0:
             action.method = "centrifugation"
         elif len(evaporation_results) > 0:
-            action = DryMaterial(action_name = "Dry", temperature=action.temperature)
+            action = Dry(action_name = "Dry", temperature=action.temperature)
         return [action.generate_dict()]
         
 
@@ -1478,7 +1450,7 @@ class WashSAC(ActionsWithChemicalAndConditions):
         action.repetitions = chemicals_info.repetitions
         list_of_actions: List[Any] = []
         if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
+            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
         if len(filter_results) > 0:
             action.method = "filtration"
         elif len(centrifuge_results) > 0:
@@ -1498,24 +1470,8 @@ class WashSAC(ActionsWithChemicalAndConditions):
                     list_of_actions.append(action.generate_dict())
         return list_of_actions
 
-class WaitMaterial(ActionsWithConditons):
-    duration: Optional[str] = None
-    temperature: Optional[str] = None
 
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser
-    ) -> List[Dict[str, Any]]:
-        action: WaitMaterial = cls(action_name="Wait", action_context=context)
-        action.validate_conditions(conditions_parser)
-        list_of_actions: List[Any] = []
-        if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
-        if action.duration is not None:
-            list_of_actions.append(action.generate_dict())
-        return list_of_actions
-
-class DryMaterial(ActionsWithConditons):
+class Dry(ActionsWithConditons):
     temperature: Optional[str] = None
     duration: Optional[str] = None
     atmosphere: List[str] = []
@@ -1524,7 +1480,7 @@ class DryMaterial(ActionsWithConditons):
     def generate_action(
         cls, context: str, conditions_parser: ParametersParser
     ) -> List[Dict[str, Any]]:
-        action: DryMaterial = cls(action_name="Dry", action_context=context)
+        action: Dry = cls(action_name="Dry", action_context=context)
         action.validate_conditions(conditions_parser)
         return [action.generate_dict()]
 
@@ -1542,24 +1498,6 @@ class ThermalTreatment(ActionsWithConditons):
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         return [action.generate_dict()]
 
-class StirMaterial(ActionsWithConditons):
-    duration: Optional[str] = None
-    stirring_speed: Optional[str] = None
-    temperature: Optional[str] = None
-    
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
-    ) -> List[Dict[str, Any]]:
-        action: StirMaterial = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        list_of_actions: List[Any] = []
-        if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
-        if action.duration is not None:
-            list_of_actions.append(action.generate_dict())
-        return list_of_actions
-    
 class SonicateMaterial(ActionsWithConditons):
     duration: Optional[str] = None
     stirring_speed: Optional[str] = None
@@ -1569,11 +1507,11 @@ class SonicateMaterial(ActionsWithConditons):
     def generate_action(
         cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
     ) -> List[Dict[str, Any]]:
-        action: StirMaterial = cls(action_name="Stir", action_context=context)
+        action: Stir = cls(action_name="Stir", action_context=context)
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         list_of_actions: List[Any] = []
         if action.temperature is not None:
-            list_of_actions.append(ChangeTemperature(action_name="ChangeTemperature", temperature=action.temperature).generate_dict())
+            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
         if action.duration is not None:
             action.stirring_speed = "sonicate"
             list_of_actions.append(action.generate_dict())
@@ -1705,7 +1643,7 @@ class PhaseSeparationSAC(Actions):
         elif len(centrifuge_results) > 0:
             return CentrifugeSAC.generate_action(context)
         else:
-            return [action.transform_into_pistachio()]
+            return [action.generate_dict()]
 
 class FilterSAC(Actions):
     """
@@ -1743,7 +1681,7 @@ class FilterSAC(Actions):
         else:
             action.phase_to_keep = "precipitate"
         
-        return [action.transform_into_pistachio()]
+        return [action.generate_dict()]
 
 class CentrifugeSAC(Actions):
     """
@@ -1756,119 +1694,7 @@ class CentrifugeSAC(Actions):
         context: str,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Centrifugate", action_context=context)
-        return [action.transform_into_pistachio()]
-
-
-class ChangeTemperature(ActionsWithConditons):
-    temperature: Optional[str] = None
-    microwave: bool = False
-    heat_ramp: Optional[str] = None
-    duration: Optional[str] = None
-    pressure: Optional[str] = None
-    stirring_speed: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        action = cls(action_name="ChangeTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        keywords_list = microwave_parser.find_keywords(context)
-        if len(keywords_list) > 0:
-            action.microwave = True
-        if action.duration is not None:
-            new_action = Crystallization(action_name="Crystallization", temperature=action.temperature, duration=action.duration, pressure=action.pressure, stirring_speed=action.stirring_speed, microwave=action.microwave)
-            return [new_action.generate_dict()]
-        else:
-            return [action.generate_dict()]
-        
-class ChangeTemperatureSAC(ActionsWithConditons):
-    temperature: Optional[str] = None
-    microwave: bool = False
-    heat_ramp: Optional[str] = None
-    duration: Optional[str] = None
-    pressure: Optional[str] = None
-    atmosphere: Optional[str] = None
-    stirring_speed: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        action = cls(action_name="ChangeTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        keywords_list = microwave_parser.find_keywords(context)
-        list_of_actions: List[Any] = []
-        if len(keywords_list) > 0:
-            action.microwave = True
-        if action.temperature is None:
-            pass
-        elif action.atmosphere is not None:
-            new_action = ThermalTreatment(action_name="ThermalTreatment", temperature=action.temperature, duration=action.duration, heat_ramp=action.heat_ramp, atmosphere=action.atmosphere)
-            list_of_actions.append(new_action.generate_dict())
-        elif action.stirring_speed is not None:
-            new_action = StirMaterial(action_name="Stir", duration=action.duration, stirring_speed=action.stirring_speed)
-            list_of_actions.append(action.generate_dict())
-            list_of_actions.append(new_action.generate_dict())
-        elif action.duration is not None:
-            new_action = WaitMaterial(action_name="Wait", duration=action.duration)
-            list_of_actions.append(action.generate_dict())
-            list_of_actions.append(new_action.generate_dict())
-        return list_of_actions
-
-class Cool(ActionsWithConditons):
-    temperature: Optional[str] = None
-    microwave: bool = False
-    heat_ramp: Optional[str] = None
-    duration: Optional[str] = None
-    pressure: Optional[str] = None
-    stirring_speed: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        action = cls(action_name="ChangeTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        keywords_list = microwave_parser.find_keywords(context)
-        if len(keywords_list) > 0:
-            action.microwave = True
-        if action.duration is not None:
-            new_action = Crystallization(action_name="Crystallization", temperature=action.temperature, duration=action.duration, pressure=action.pressure, stirring_speed=action.stirring_speed, microwave=action.microwave)
-            return [new_action.generate_dict()]
-        else:
-            if action.temperature is None:
-                action.temperature = "Cool"
-            return [action.generate_dict()]
-        
-class CoolSAC(ActionsWithConditons):
-    temperature: Optional[str] = None
-    microwave: bool = False
-    heat_ramp: Optional[str] = None
-    duration: Optional[str] = None
-    pressure: Optional[str] = None
-    stirring_speed: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        action = cls(action_name="ChangeTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        keywords_list = microwave_parser.find_keywords(context)
-        if len(keywords_list) > 0:
-            action.microwave = True
-        if action.temperature is None:
-            action.temperature = "Cool"
-        list_of_actions: List[Any] = []
-        list_of_actions.append(action.generate_dict())
-        if action.stirring_speed is not None:
-            new_action = StirMaterial(action_name="Stir", duration=action.duration, stirring_speed=action.stirring_speed)
-            list_of_actions.append(new_action.generate_dict())
-        elif action.duration is not None:
-            new_action = WaitMaterial(action_name="Wait", duration=action.duration)
-            list_of_actions.append(new_action.generate_dict())
-        return list_of_actions
+        return [action.generate_dict()]
 
 class SetAtmosphere(Actions):
     atmosphere: List[str] = []
@@ -2055,33 +1881,33 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "separate": Separate,
     "sonicate": Stir,
     "wash": WashMaterial,
-    "wait": WaitMaterial,
-    "dry": DryMaterial,
+    "wait": Wait,
+    "dry": Dry,
     "calcination": ThermalTreatment,
-    "stir": StirMaterial,
+    "stir": Stir,
     "ionexchange": IonExchange,
     "ion-exchange": IonExchange,
     "ion exchange": IonExchange,
     "alkalinetreatment": AlkalineTreatment,
     "acidtreatment": AcidTreatment,
     "repeat": Repeat,
-    "cool": Cool,
-    "heat": ChangeTemperature,
-    "settemperature":  ChangeTemperature,
+    "cool": ReduceTemperature,
+    "heat": SetTemperature,
+    "settemperature":  SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
     "extract": WashMaterial,
     "quench": WashMaterial,
     "thermaltreatment": ThermalTreatment,
     "posttreatment": ThermalTreatment, 
-    "drysolid": DryMaterial,
-    "drysolution": DryMaterial,
-    "dry": DryMaterial,
+    "drysolid": Dry,
+    "drysolution": Dry,
+    "dry": Dry,
     "concentrate": Separate,
     "centrifugate": Separate,
     "filter": Separate,
     "sonicate": SonicateMaterial,
-    "reflux": ChangeTemperature,
+    "reflux": SetTemperature,
     "phaseseparation": Separate,
     "purify": WashMaterial,
     "transfer": None,
@@ -2104,11 +1930,11 @@ ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {
     "newmixture": NewSolution,
     "separate": Separate,
     "wash": WashMaterial,
-    "wait": WaitMaterial,
-    "stir": StirMaterial,
+    "wait": Wait,
+    "stir": Stir,
     "repeat": Repeat,
-    "cool": Cool,
-    "heat": ChangeTemperatureSAC,
+    "cool": ReduceTemperature,
+    "heat": SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
 }
@@ -2120,21 +1946,21 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "separate": PhaseSeparationSAC,
     "centrifugate": PhaseSeparationSAC,
     "filter": PhaseSeparationSAC,
-    "concentrate": DryMaterial,
-    "cool": CoolSAC,
-    "heat": ChangeTemperatureSAC,
+    "concentrate": Dry,
+    "cool": ReduceTemperature,
+    "heat": SetTemperature,
     "wash": WashSAC,
-    "wait": WaitMaterial,
-    "reflux": ChangeTemperatureSAC,
-    "drysolid": DryMaterial,
-    "drysolution": DryMaterial,
-    "dry": DryMaterial,
+    "wait": Wait,
+    "reflux": SetTemperature,
+    "drysolid": Dry,
+    "drysolution": Dry,
+    "dry": Dry,
     "posttreatment": ThermalTreatment,
     "thermaltreatment": ThermalTreatment,
-    "stir": StirMaterial,
+    "stir": Stir,
     "sonicate": Sonicate,
     "quench": Quench,
-    "settemperature": ChangeTemperatureSAC,
+    "settemperature": SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
     "anneal": ThermalTreatment,
