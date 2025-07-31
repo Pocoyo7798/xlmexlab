@@ -1270,6 +1270,13 @@ class ImageParser(BaseModel):
     data_dict: Dict[str, Dict[str, list]] = Field(default_factory=dict)
     data_string: str = ""
 
+    def convert_single_to_double_and_fix_double_quotes(self, text: str) -> str:
+        # 1. Trocar todas aspas simples por aspas duplas
+        text = text.replace("'", '"')
+        # 2. Substituir todas aspas duplas duplas seguidas ("" sem nada entre) por aspas duplas simples
+        text = re.sub(r'""+', '"', text)
+        return text   
+
     def __init__(self, data_string: Union[str, dict] = "", **data):
         super().__init__(data_string=data_string, **data)
         self._parse_input(data_string)
@@ -1282,6 +1289,8 @@ class ImageParser(BaseModel):
         else:
             try:
                 input_data = input_data.strip()
+
+                input_data = self.convert_single_to_double_and_fix_double_quotes(input_data)
 
                 # Extract content inside triple backticks
                 matches = re.findall(r"```(?:json)?(.*?)```", input_data, re.DOTALL)
