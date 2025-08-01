@@ -561,6 +561,11 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(new_action)
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
+            elif action_name == "Centrifuge":
+                new_action_list.append({'action': 'PhaseSeparation', 'content': {}})
+            elif action_name == "Filter":
+                if content["phase_to_keep"] is None:
+                    action["content"]["phase_to_keep"] = "filtrate"
             elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["stirring_speed", "pressure"]))
             elif action_name == "SetTemperature":
@@ -607,8 +612,13 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append(action)
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
-            elif action["action"] == "Stir":
+            elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
+            elif action_name == "Centrifuge":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["phase_to_keep"]))
+            elif action_name == "Filter":
+                if content["phase_to_keep"] is None:
+                    action["content"]["phase_to_keep"] = "precipitate"
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     if new_temp is None:
