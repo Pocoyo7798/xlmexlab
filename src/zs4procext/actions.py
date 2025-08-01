@@ -1498,25 +1498,6 @@ class ThermalTreatment(ActionsWithConditons):
         action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
         return [action.generate_dict()]
 
-class SonicateMaterial(ActionsWithConditons):
-    duration: Optional[str] = None
-    stirring_speed: Optional[str] = None
-    temperature: Optional[str] = None
-    
-    @classmethod
-    def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
-    ) -> List[Dict[str, Any]]:
-        action: Stir = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
-        list_of_actions: List[Any] = []
-        if action.temperature is not None:
-            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
-        if action.duration is not None:
-            action.stirring_speed = "sonicate"
-            list_of_actions.append(action.generate_dict())
-        return list_of_actions
-
 class IonExchange(Treatment):
     
     @classmethod
@@ -1906,7 +1887,7 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "concentrate": Separate,
     "centrifugate": Separate,
     "filter": Separate,
-    "sonicate": SonicateMaterial,
+    "sonicate": Sonicate,
     "reflux": SetTemperature,
     "phaseseparation": Separate,
     "purify": WashMaterial,

@@ -46,7 +46,6 @@ from zs4procext.actions import (
     ReduceTemperature,
     Separate,
     SetTemperature,
-    SonicateMaterial,
     Stir,
     ThermalTreatment,
     Transfer,
@@ -349,24 +348,27 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 else:
                     new_action_list.append(action)
-            elif action["action"] == "Repeat" and len(new_action_list) > 1:
+            elif action_name == "Repeat" and len(new_action_list) > 1:
                 pre_action = new_action_list[-1]
                 amount = float(action["content"]["amount"])
                 if pre_action["action"] =="Repeat":
                     new_amount = float(pre_action["content"]["amount"])
                     if amount < new_amount:
                         new_action_list[-1] = action
-            elif action["action"] == "SetTemperature":
+            elif action_name == "SetTemperature":
                 if content["duration"] is not None:
                     new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
-            elif action["action"] in set(["Wash", "Separate"]):
+            elif action_name in set(["Wash", "Separate"]):
                 add_new_solution = True
                 new_action_list.append(action)
                 i_new_solution = len(new_action_list)
-            elif action["action"] in set(["Crystallization", "Dry", "ThermalTreatment"]):
+            elif action_name in set(["Crystallization", "Dry", "ThermalTreatment"]):
                 new_action_list.append(action)
                 i_new_solution = len(new_action_list)
-            elif action["action"] == "Stir":
+            elif action_name == "Sonicate":
+                new_action_list.append({'action': 'Stir', 'content': {'duration': content["duration"], 'stirring_speed': "sonicate"}})
+                i_new_solution = len(new_action_list)
+            elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
             else:
                 new_action_list.append(action)
@@ -740,7 +742,7 @@ class ActionExtractorFromText(BaseModel):
                     context, self._condition_parser, self._complex_parser, self._microwave_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([ThermalTreatment, Stir, SonicateMaterial]):
+            elif action in set([ThermalTreatment, Stir]):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
             elif action in set([MakeSolution, Add, Quench]):
