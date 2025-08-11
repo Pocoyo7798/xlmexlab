@@ -119,15 +119,11 @@ class Actions(BaseModel):
     
     def generate_dict(self) -> Dict[str, Any]:
         action_name: str = self.action_name
-        if type(self) is AddMaterials:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context", "atmosphere", "temperature"}
-            )
-        elif type(self) is Grind:
+        if type(self) is Grind:
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "size"}
             )
-        elif type(self) in set([Add, MakeSolution]):
+        elif type(self) in set([MakeSolution]):
             action_dict = self.model_dump(
                 exclude={"action_name", "action_context", "pressure"}
             )
@@ -380,7 +376,7 @@ class Treatment(ActionsWithChemicalAndConditions):
                 if len(banned_names) > 0:
                     pass
                 else:
-                    new_action: Actions = AddMaterials(action_name="Add", material=solution)
+                    new_action: Actions = Add(action_name="Add", material=solution)
                     list_of_actions.append(new_action.generate_dict())
         if action.temperature is not None:
             new_action = SetTemperature(action_name="SetTemperature", temperature=action.temperature)
@@ -439,13 +435,12 @@ class PH(ActionsWithChemicalAndConditions):
         return [action.generate_dict()]
 
 
-class Add(ActionsWithChemicalAndConditions):
+class Add2(ActionsWithChemicalAndConditions):
     material: Optional[Chemical] = None
     dropwise: bool = False
     temperature: Optional[str] = None
     atmosphere: List[str] = []
     duration: Optional[str] = None
-    pressure: Optional[str] = None
 
     @classmethod
     def generate_action(
@@ -480,6 +475,68 @@ class Add(ActionsWithChemicalAndConditions):
                 action.material = chemical
                 action.dropwise = chemicals_info.dropwise[i]
                 list_of_actions.append(action.generate_dict())
+                i += 1
+        return list_of_actions
+
+class Add(ActionsWithChemicalAndConditions):
+    material: Optional[ChemicalsMaterials] = None
+    dropwise: bool = False
+    temperature: Optional[str] = None
+    atmosphere: List[str] = []
+    duration: Optional[str] = None
+    ph: Optional[str] = None
+    
+    @classmethod
+    def generate_action(
+        cls,
+        context: str,
+        schemas: List[str],
+        schema_parser: SchemaParser,
+        amount_parser: ParametersParser,
+        conditions_parser: ParametersParser,
+        ph_parser: KeywordSearching,
+        banned_parser: KeywordSearching,
+        complex_parser: ComplexParametersParser=None,
+    ) -> List[Dict[str, Any]]:
+        action: Add = cls(action_name="Add", action_context=context)
+        action.validate_conditions(conditions_parser)
+        chemicals_info: ChemicalInfoMaterials = action.validate_chemicals_materials(
+            schemas, schema_parser, amount_parser, action.action_context, complex_parser=complex_parser
+        )
+        if len(ph_parser.find_keywords(context)) > 0:
+            dimensionless_values = DimensionlessParser.get_dimensionless_numbers(context)
+            if len(dimensionless_values) == 0:
+                pass
+            elif len(dimensionless_values) == 1:
+                action.ph = dimensionless_values[0]
+            else:
+                action.ph = dimensionless_values[0]
+                print(
+                    "Warning: More than one dimentionless value was found for the pH, only the first one was considered"
+                )
+        list_of_actions: List[Dict[str, Any]] = []
+        if len(chemicals_info.chemical_list) == 0:
+            pass
+        elif len(chemicals_info.chemical_list[0].name.lower()) < 2:
+            pass
+        elif len(chemicals_info.chemical_list) == 1:
+            banned_names: List[str] = banned_parser.find_keywords(chemicals_info.chemical_list[0].name.lower())
+            if len(banned_names) == 0:
+                if chemicals_info.chemical_list[0].name.lower() == "aqueous solution":
+                    chemicals_info.chemical_list[0].name = "water"
+                action.material = chemicals_info.chemical_list[0]
+                action.dropwise = chemicals_info.dropwise[0]
+                list_of_actions.append(action.generate_dict())
+        else:
+            i = 0
+            for chemical in chemicals_info.chemical_list:
+                banned_names: List[str] = banned_parser.find_keywords(chemical.name)
+                if len(banned_names) == 0:
+                    if chemical.name.lower() == "aqueous solution":
+                        chemical.name = "water"
+                    action.material = chemical
+                    action.dropwise = chemicals_info.dropwise[i]
+                    list_of_actions.append(action.generate_dict())
                 i += 1
         return list_of_actions
 
@@ -1138,7 +1195,7 @@ class MakeSolutionSAC(ActionsWithChemicalAndConditions):
         if len(chemicals_info.chemical_list) == 0:
             pass
         elif len(chemicals_info.chemical_list) == 1:
-            return AddSAC.generate_action(
+            return Add.generate_action(
                 context,
                 schemas,
                 schema_parser,
@@ -1160,131 +1217,7 @@ class MakeSolutionSAC(ActionsWithChemicalAndConditions):
         list_of_actions.append(action.generate_dict())
         return list_of_actions
 
-class AddSAC(ActionsWithChemicalAndConditions):
-    material: Optional[ChemicalsMaterials] = None
-    dropwise: bool = False
-    atmosphere: List[str] = []
-    temperature: Optional[str] = None
-    duration: Optional[str] = None
-    ph: Optional[str] = None
-    
-    @classmethod
-    def generate_action(
-        cls,
-        context: str,
-        schemas: List[str],
-        schema_parser: SchemaParser,
-        amount_parser: ParametersParser,
-        conditions_parser: ParametersParser,
-        ph_parser: KeywordSearching,
-        banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
-    ) -> List[Dict[str, Any]]:
-        action: AddMaterials = cls(action_name="Add", action_context=context)
-        action.validate_conditions(conditions_parser)
-        chemicals_info: ChemicalInfoMaterials = action.validate_chemicals_materials(
-            schemas, schema_parser, amount_parser, action.action_context, complex_parser=complex_parser
-        )
-        if len(ph_parser.find_keywords(context)) > 0:
-            dimensionless_values = DimensionlessParser.get_dimensionless_numbers(context)
-            if len(dimensionless_values) == 0:
-                pass
-            elif len(dimensionless_values) == 1:
-                action.ph = dimensionless_values[0]
-            else:
-                action.ph = dimensionless_values[0]
-                print(
-                    "Warning: More than one dimentionless value was found for the pH, only the first one was considered"
-                )
-        list_of_actions: List[Dict[str, Any]] = []
-        if action.temperature is not None:
-            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
-        if len(chemicals_info.chemical_list) == 0:
-            pass
-        elif len(chemicals_info.chemical_list[0].name.lower()) < 2:
-            pass
-        elif len(chemicals_info.chemical_list) == 1:
-            banned_names: List[str] = banned_parser.find_keywords(chemicals_info.chemical_list[0].name.lower())
-            if len(banned_names) == 0:
-                if chemicals_info.chemical_list[0].name.lower() == "aqueous solution":
-                    chemicals_info.chemical_list[0].name = "water"
-                action.material = chemicals_info.chemical_list[0]
-                action.dropwise = chemicals_info.dropwise[0]
-                list_of_actions.append(action.generate_dict())
-        else:
-            i = 0
-            for chemical in chemicals_info.chemical_list:
-                banned_names: List[str] = banned_parser.find_keywords(chemical.name)
-                if len(banned_names) == 0:
-                    action.material = chemical
-                    action.dropwise = chemicals_info.dropwise[i]
-                    list_of_actions.append(action.generate_dict())
-                i += 1
-        return list_of_actions
 
-class AddMaterials(ActionsWithChemicalAndConditions):
-    material: Optional[ChemicalsMaterials] = None
-    dropwise: bool = False
-    atmosphere: List[str] = []
-    temperature: Optional[str] = None
-    duration: Optional[str] = None
-    ph: Optional[str] = None
-    
-    @classmethod
-    def generate_action(
-        cls,
-        context: str,
-        schemas: List[str],
-        schema_parser: SchemaParser,
-        amount_parser: ParametersParser,
-        conditions_parser: ParametersParser,
-        ph_parser: KeywordSearching,
-        banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
-    ) -> List[Dict[str, Any]]:
-        action: AddMaterials = cls(action_name="Add", action_context=context)
-        action.validate_conditions(conditions_parser)
-        chemicals_info: ChemicalInfoMaterials = action.validate_chemicals_materials(
-            schemas, schema_parser, amount_parser, action.action_context, complex_parser=complex_parser
-        )
-        if len(ph_parser.find_keywords(context)) > 0:
-            dimensionless_values = DimensionlessParser.get_dimensionless_numbers(context)
-            if len(dimensionless_values) == 0:
-                pass
-            elif len(dimensionless_values) == 1:
-                action.ph = dimensionless_values[0]
-            else:
-                action.ph = dimensionless_values[0]
-                print(
-                    "Warning: More than one dimentionless value was found for the pH, only the first one was considered"
-                )
-        list_of_actions: List[Dict[str, Any]] = []
-        if action.temperature is not None:
-            list_of_actions.append(SetTemperature(action_name="SetTemperature", temperature=action.temperature).generate_dict())
-        if action.atmosphere != []:
-            list_of_actions.append(SetAtmosphere(action_name="SetAtmosphere", atmosphere= action.atmosphere).generate_dict())
-        if len(chemicals_info.chemical_list) == 0:
-            pass
-        elif len(chemicals_info.chemical_list[0].name.lower()) < 2:
-            pass
-        elif len(chemicals_info.chemical_list) == 1:
-            banned_names: List[str] = banned_parser.find_keywords(chemicals_info.chemical_list[0].name.lower())
-            if len(banned_names) == 0:
-                if chemicals_info.chemical_list[0].name.lower() == "aqueous solution":
-                    chemicals_info.chemical_list[0].name = "water"
-                action.material = chemicals_info.chemical_list[0]
-                action.dropwise = chemicals_info.dropwise[0]
-                list_of_actions.append(action.generate_dict())
-        else:
-            i = 0
-            for chemical in chemicals_info.chemical_list:
-                banned_names: List[str] = banned_parser.find_keywords(chemical.name)
-                if len(banned_names) == 0:
-                    action.material = chemical
-                    action.dropwise = chemicals_info.dropwise[i]
-                    list_of_actions.append(action.generate_dict())
-                i += 1
-        return list_of_actions
 
 
 class NewSolution(ActionsWithChemicalAndConditions):
@@ -1312,7 +1245,7 @@ class NewSolution(ActionsWithChemicalAndConditions):
                 action.solution = chemicals_info.final_solution
         list_of_actions: List[Dict[str, Any]] = []
         list_of_actions.append(action.generate_dict())
-        add_actions = AddMaterials.generate_action(
+        add_actions = Add.generate_action(
                 context, schemas, schema_parser, amount_parser, conditions_parser, ph_parser, banned_parser
             )
         list_of_actions += add_actions
@@ -1783,7 +1716,7 @@ ORGANIC_ACTION_REGISTRY: Dict[str, Any] = {
     "obtain": Yield,
 }
 MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
-    "add": AddMaterials,
+    "add": Add,
     "newsolution": NewSolution,
     "makesolution": NewSolution,
     "newmixture": NewSolution,
@@ -1834,7 +1767,7 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
 }
 
 ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {
-    "add": AddMaterials,
+    "add": Add,
     "newsolution": NewSolution,
     "makesolution": NewSolution,
     "newmixture": NewSolution,
@@ -1850,7 +1783,7 @@ ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {
 }
 
 SAC_ACTION_REGISTRY: Dict[str, Any] = {
-    "add": AddSAC,
+    "add": Add,
     "makesolution": MakeSolutionSAC,
     "newsolution": MakeSolutionSAC,
     "separate": PhaseSeparation,
