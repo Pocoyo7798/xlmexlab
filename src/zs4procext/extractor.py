@@ -31,8 +31,6 @@ from zs4procext.actions import (
     ORGANIC_ACTION_REGISTRY,
     SAC_ACTION_REGISTRY,
     Add,
-    AddMaterials,
-    AddSAC,
     MakeSolutionSAC,
     Crystallization,
     CollectLayer,
@@ -41,12 +39,10 @@ from zs4procext.actions import (
     MakeSolution,
     NewSolution,
     PhaseSeparation,
-    PhaseSeparationSAC,
     Quench,
     ReduceTemperature,
     Separate,
     SetTemperature,
-    SonicateMaterial,
     Stir,
     ThermalTreatment,
     Transfer,
@@ -123,7 +119,7 @@ class ActionExtractorFromText(BaseModel):
                 )
             self._action_dict = PISTACHIO_ACTION_REGISTRY
             ph_keywords: List[str] = ["&^%#@&#@(*)"]
-            atributes = ["name", "dropwise"]
+            atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "organic":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
@@ -133,7 +129,7 @@ class ActionExtractorFromText(BaseModel):
                 )
             self._action_dict = ORGANIC_ACTION_REGISTRY
             ph_keywords = ["&^%#@&#@(*)"]
-            atributes = ["name", "dropwise"]
+            atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "materials":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
@@ -339,7 +335,9 @@ class ActionExtractorFromText(BaseModel):
             if action_name == "Add" and add_new_solution is True:
                 add_new_solution = False
                 new_action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
-                new_action_list.append(action)
+                if content["atmosphere"] != []:
+                    new_action_list.append({'action': 'SetAtmosphere', 'content': {'atmosphere': content["atmosphere"], 'pressure': None, 'flow_rate': None}})
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere"]))
             elif action["action"] == "NewSolution":
                 add_new_solution = False
                 initial_temp = None
@@ -349,24 +347,27 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 else:
                     new_action_list.append(action)
-            elif action["action"] == "Repeat" and len(new_action_list) > 1:
+            elif action_name == "Repeat" and len(new_action_list) > 1:
                 pre_action = new_action_list[-1]
                 amount = float(action["content"]["amount"])
                 if pre_action["action"] =="Repeat":
                     new_amount = float(pre_action["content"]["amount"])
                     if amount < new_amount:
                         new_action_list[-1] = action
-            elif action["action"] == "SetTemperature":
+            elif action_name == "SetTemperature":
                 if content["duration"] is not None:
                     new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
-            elif action["action"] in set(["Wash", "Separate"]):
+            elif action_name in set(["Wash", "Separate"]):
                 add_new_solution = True
                 new_action_list.append(action)
                 i_new_solution = len(new_action_list)
-            elif action["action"] in set(["Crystallization", "Dry", "ThermalTreatment"]):
+            elif action_name in set(["Crystallization", "Dry", "ThermalTreatment"]):
                 new_action_list.append(action)
                 i_new_solution = len(new_action_list)
-            elif action["action"] == "Stir":
+            elif action_name == "Sonicate":
+                new_action_list.append({'action': 'Stir', 'content': {'duration': content["duration"], 'stirring_speed': "sonicate"}})
+                i_new_solution = len(new_action_list)
+            elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
             else:
                 new_action_list.append(action)
@@ -377,81 +378,6 @@ class ActionExtractorFromText(BaseModel):
             if last_action["action"] == "Wait" and second_last_action["action"] in set(["Dry", "Wait", "ThermalTreatment", "Wash", "Separate"]):
                 del new_action_list[-1]
         return new_action_list
-    
-    @staticmethod
-    def correct_action_list2(action_list: List[Dict[str, Any]]):
-        for action in action_list:
-            print(action)
-        i = 0
-        temperature = None
-        add_new_solution = True
-        i_new_solution = 0
-        while i < len(action_list):
-            action = action_list[i]
-            if action["action"] == "Add" and add_new_solution is True:
-                add_new_solution = False
-                action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
-                i = i + 1
-            elif action["action"] == "NewSolution":
-                add_new_solution = False
-                temperature = None
-                if i == len(action_list) - 1:
-                    del action_list[i]
-                elif action_list[i + 1]["action"] not in set(["Add", "SetTemperature", "SetAtmosphere", "Repetition"]):
-                    del action_list[i]
-                else:
-                    i = i + 1
-            elif action["action"] == "Repeat" and i < len(action_list) - 1:
-                post_action = action_list[i + 1]
-                amount = float(action["content"]["amount"])
-                if post_action["action"] =="Repeat":
-                    new_amount = float(post_action["content"]["amount"])
-                    if amount > new_amount:
-                        del action_list[i]
-                    else:
-                        del action_list[i + 1]
-                else:
-                    i += 1
-            elif action["action"] == "SetTemperature":
-                content = action["content"]
-                if content["duration"] is not None:
-                    action_list[i] = {'action': 'Crystallization', 'content': {'temperature': content["temperature"], 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
-                    i = i + 1
-                elif content["temperature"] in set(["heat", "cool"]):
-                    temperature = content["temperature"]
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
-                    i = i + 1
-                elif content["temperature"] == temperature:
-                    del action_list[i]
-                else:
-                    action_list[i] = ActionExtractorFromText.delete_dict_keys(action_list[i], ["duration", "pressure", "stirring_speed", "atmosphere"])
-                    temperature = content["temperature"]
-                    i = i + 1
-            elif action["action"] in set(["Wash", "Separate"]):
-                add_new_solution = True
-                i_new_solution = i + 1
-                i = i + 1
-            elif action["action"] == "Crystallization":
-                i_new_solution = i + 1
-                content = action["content"]
-                if content["temperature"] is not None:
-                    temperature = content["temperature"]
-                i = i + 1
-            elif action["action"] == "Dry":
-                i_new_solution = i + 1
-                content = action["content"]
-                if content["temperature"] is not None:
-                    temperature = content["temperature"]
-                i = i + 1
-            elif action["action"] == "ThermalTreatment":
-                i_new_solution = i + 1
-                content = action["content"]
-                if content["temperature"] is not None:
-                    temperature = content["temperature"]
-                i = i + 1
-            else:
-                i = i + 1
-        return action_list
     
     @staticmethod
     def correct_organic_action_list(action_dict_list: List[Dict[str, Any]]):
@@ -490,10 +416,13 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
+                content["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
+                elif content["ph"] is not None:
+                    new_action_list.append({'action': 'PH', 'content': {'ph': content["ph"], 'material': content["material"], 'dropwise': content["dropwise"]}})
                 else:
-                    new_action_list.append(action)
+                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
@@ -550,15 +479,21 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
+                content["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
                 else:
-                    new_action_list.append(action)
+                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
             elif action_name == "PH":
                 new_action = {'action': 'Add', 'content': {'material': content["material"], 'dropwise': content["dropwise"], 'atmosphere': None, 'duration': None}}
                 new_action_list.append(new_action)
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
+            elif action_name == "Centrifuge":
+                new_action_list.append({'action': 'PhaseSeparation', 'content': {}})
+            elif action_name == "Filter":
+                if content["phase_to_keep"] is None:
+                    action["content"]["phase_to_keep"] = "filtrate"
             elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["stirring_speed", "pressure"]))
             elif action_name == "SetTemperature":
@@ -602,11 +537,16 @@ class ActionExtractorFromText(BaseModel):
                 if content["material"]["name"] == "SLN":
                     pass
                 else:
-                    new_action_list.append(action)
+                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere"]))
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
-            elif action["action"] == "Stir":
+            elif action_name == "Stir":
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere", "pressure"]))
+            elif action_name == "Centrifuge":
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["phase_to_keep"]))
+            elif action_name == "Filter":
+                if content["phase_to_keep"] is None:
+                    action["content"]["phase_to_keep"] = "precipitate"
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     if new_temp is None:
@@ -740,10 +680,10 @@ class ActionExtractorFromText(BaseModel):
                     context, self._condition_parser, self._complex_parser, self._microwave_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([ThermalTreatment, Stir, SonicateMaterial]):
+            elif action in set([ThermalTreatment, Stir]):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
-            elif action in set([MakeSolution, Add, Quench]):
+            elif action in set([MakeSolution, Quench]):
                 if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
                 elif action is MakeSolution:
@@ -763,8 +703,8 @@ class ActionExtractorFromText(BaseModel):
                     self._banned_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([MakeSolutionSAC, AddSAC, AddMaterials, NewSolution]):
-                if action is AddMaterials or action is AddSAC:
+            elif action in set([MakeSolutionSAC, Add, NewSolution]):
+                if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
                 elif action is NewSolution or action is MakeSolutionSAC:
                     chemical_prompt = self._solution_chemical_prompt.format_prompt(f"'{context}'")
@@ -817,7 +757,7 @@ class ActionExtractorFromText(BaseModel):
                     self._centri_parser, self._filter_parser, self._evaporation_parser
                 )
                 action_list.extend(new_action)
-            elif action in [PhaseSeparation, PhaseSeparationSAC]:
+            elif action is PhaseSeparation:
                 new_action = action.generate_action(
                     context, self._filtrate_parser, self._precipitate_parser,
                     self._centri_parser, self._filter_parser
