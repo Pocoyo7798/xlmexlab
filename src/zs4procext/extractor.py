@@ -39,7 +39,6 @@ from zs4procext.actions import (
     MakeSolution,
     NewSolution,
     PhaseSeparation,
-    PhaseSeparationSAC,
     Quench,
     ReduceTemperature,
     Separate,
@@ -758,7 +757,7 @@ class ActionExtractorFromText(BaseModel):
                     self._centri_parser, self._filter_parser, self._evaporation_parser
                 )
                 action_list.extend(new_action)
-            elif action in [PhaseSeparation, PhaseSeparationSAC]:
+            elif action is PhaseSeparation:
                 new_action = action.generate_action(
                     context, self._filtrate_parser, self._precipitate_parser,
                     self._centri_parser, self._filter_parser
