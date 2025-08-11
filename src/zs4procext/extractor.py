@@ -119,7 +119,7 @@ class ActionExtractorFromText(BaseModel):
                 )
             self._action_dict = PISTACHIO_ACTION_REGISTRY
             ph_keywords: List[str] = ["&^%#@&#@(*)"]
-            atributes = ["name", "dropwise"]
+            atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "organic":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
@@ -129,7 +129,7 @@ class ActionExtractorFromText(BaseModel):
                 )
             self._action_dict = ORGANIC_ACTION_REGISTRY
             ph_keywords = ["&^%#@&#@(*)"]
-            atributes = ["name", "dropwise"]
+            atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "materials":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
