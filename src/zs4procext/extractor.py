@@ -31,8 +31,6 @@ from zs4procext.actions import (
     ORGANIC_ACTION_REGISTRY,
     SAC_ACTION_REGISTRY,
     Add,
-    AddMaterials,
-    AddSAC,
     MakeSolutionSAC,
     Crystallization,
     CollectLayer,
@@ -686,7 +684,7 @@ class ActionExtractorFromText(BaseModel):
             elif action in set([ThermalTreatment, Stir]):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
-            elif action in set([MakeSolution, Add, Quench]):
+            elif action in set([MakeSolution, Quench]):
                 if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
                 elif action is MakeSolution:
@@ -706,8 +704,8 @@ class ActionExtractorFromText(BaseModel):
                     self._banned_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([MakeSolutionSAC, AddSAC, AddMaterials, NewSolution]):
-                if action is AddMaterials or action is AddSAC:
+            elif action in set([MakeSolutionSAC, Add, NewSolution]):
+                if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
                 elif action is NewSolution or action is MakeSolutionSAC:
                     chemical_prompt = self._solution_chemical_prompt.format_prompt(f"'{context}'")
