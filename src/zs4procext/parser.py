@@ -1268,18 +1268,29 @@ superscript_map = {
 
 class ImageParser(BaseModel):
     data_dict: Dict[str, Dict[str, list]] = Field(default_factory=dict)
-    data_string: str = ""
-
-    def convert_single_to_double_and_fix_double_quotes(self, text: str) -> str:
-        # 1. Trocar todas aspas simples por aspas duplas
-        text = text.replace("'", '"')
-        # 2. Substituir todas aspas duplas duplas seguidas ("" sem nada entre) por aspas duplas simples
-        text = re.sub(r'""+', '"', text)
-        return text   
+    data_string: str = "" 
 
     def __init__(self, data_string: Union[str, dict] = "", **data):
         super().__init__(data_string=data_string, **data)
         self._parse_input(data_string)
+
+    def _safe_json_loads(self, s: str):
+        s_stripped = s.strip()
+
+        # 1) Normalize keys that have extra/mixed quotes before the colon.
+        #    Examples handled: "'10 000':   or  "'key'":   or  "\"'key'\":  etc.
+        s = re.sub(r'([{\s,])\s*["\']+\s*([^"\':]+?)\s*["\']+\s*:', r'\1"\2":', s)
+
+        # 2) If it still looks like a Python-dict (single-quoted), convert to JSON double-quotes
+        if re.search(r"{\s*'", s) or re.search(r"'\w", s):
+            # convert 'some'  ->  "some"
+            s = re.sub(r"'\s*([^']*?)\s*'", r'"\1"', s)
+            # fallback: convert remaining single quotes to doubles (safe-guard)
+            s = re.sub(r'(?<!\\)\'', '"', s)
+
+        # note: I'm not doing a global control-character replacement here because
+        # replacing newlines/tabs outside JSON strings can break parsing.
+        return json.loads(s)
 
     def _parse_input(self, input_data: Union[str, dict]):
         if isinstance(input_data, dict):
@@ -1289,8 +1300,6 @@ class ImageParser(BaseModel):
         else:
             try:
                 input_data = input_data.strip()
-
-                input_data = self.convert_single_to_double_and_fix_double_quotes(input_data)
 
                 # Extract content inside triple backticks
                 matches = re.findall(r"```(?:json)?(.*?)```", input_data, re.DOTALL)
@@ -1308,7 +1317,7 @@ class ImageParser(BaseModel):
                     flags=re.IGNORECASE
                 )
 
-                parsed_data = json.loads(input_data)
+                parsed_data = self._safe_json_loads(input_data)
 
                 outer_key = None
                 if isinstance(parsed_data, dict) and len(parsed_data) == 1:
