@@ -472,10 +472,12 @@ class ActionExtractorFromText(BaseModel):
                 atmosphere = content["atmosphere"]
                 if len(atmosphere) > 0 and type(atmosphere) is list:
                     action["content"]["atmosphere"] =  atmosphere[0]
+                    content["atmosphere"] = atmosphere[0]
                 elif type(atmosphere) is str:
                     pass
                 else:
                     action["content"]["atmosphere"] = None
+                    content["atmosphere"] = None
             except KeyError:
                 pass
             if action_name == "MakeSolution":
@@ -520,8 +522,8 @@ class ActionExtractorFromText(BaseModel):
                 if new_temp is None:
                     pass
                 elif new_temp.lower() == "reflux":
-                    if len(content["atmosphere"]) > 0:
-                        atmosphere = content["atmosphere"][0]
+                    if content["atmosphere"] is None:
+                        atmosphere = content["atmosphere"]
                     else:
                         atmosphere = None
                     new_action_list.append({'action': 'Reflux', 'content': {'duration': content["duration"], 'dean_stark': False, 'atmosphere': atmosphere}})
