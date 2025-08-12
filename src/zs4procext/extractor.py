@@ -471,11 +471,11 @@ class ActionExtractorFromText(BaseModel):
             try:
                 atmosphere = content["atmosphere"]
                 if len(atmosphere) > 0 and type(atmosphere) is list:
-                    action["content"][atmosphere] =  atmosphere[0]
+                    action["content"]["atmosphere"] =  atmosphere[0]
                 elif type(atmosphere) is str:
                     pass
                 else:
-                    action["content"][atmosphere] = None
+                    action["content"]["atmosphere"] = None
             except KeyError:
                 pass
             if action_name == "MakeSolution":
