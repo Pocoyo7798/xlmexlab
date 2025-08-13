@@ -256,6 +256,15 @@ class ActionExtractorFromText(BaseModel):
             except KeyError:
                 pass
         return action
+    
+    @staticmethod
+    def delete_material_dict_keys(dict_info: Dict[str, Any], keys_list):
+        for key in keys_list:
+            try:
+                del dict_info[key]
+            except KeyError:
+                pass
+        return dict_info
 
     @staticmethod
     def empty_action(action: Dict[str, Any]):
@@ -400,6 +409,16 @@ class ActionExtractorFromText(BaseModel):
                 del content["temperature"]
             except KeyError:
                 pass
+            try:
+                atmosphere = content["atmosphere"]
+                if len(atmosphere) > 0 and type(atmosphere) is list:
+                    action["content"][atmosphere] =  atmosphere[0]
+                elif type(atmosphere) is str:
+                    pass
+                else:
+                    action["content"][atmosphere] = None
+            except KeyError:
+                pass
             if action_name == "Partition":
                 if content["material_1"] is None and content["material_2"] is None:
                     pass
@@ -416,7 +435,7 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
-                content["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
                 elif content["ph"] is not None:
@@ -458,6 +477,18 @@ class ActionExtractorFromText(BaseModel):
                 del content["temperature"]
             except KeyError:
                 pass
+            try:
+                atmosphere = content["atmosphere"]
+                if len(atmosphere) > 0 and type(atmosphere) is list:
+                    action["content"]["atmosphere"] =  atmosphere[0]
+                    content["atmosphere"] = atmosphere[0]
+                elif type(atmosphere) is str:
+                    pass
+                else:
+                    action["content"]["atmosphere"] = None
+                    content["atmosphere"] = None
+            except KeyError:
+                pass
             if action_name == "MakeSolution":
                 chemical_list = content["materials"]
                 for chemical in chemical_list:
@@ -479,7 +510,7 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
-                content["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
                 else:
@@ -500,8 +531,8 @@ class ActionExtractorFromText(BaseModel):
                 if new_temp is None:
                     pass
                 elif new_temp.lower() == "reflux":
-                    if len(content["atmosphere"]) > 0:
-                        atmosphere = content["atmosphere"][0]
+                    if content["atmosphere"] is None:
+                        atmosphere = content["atmosphere"]
                     else:
                         atmosphere = None
                     new_action_list.append({'action': 'Reflux', 'content': {'duration': content["duration"], 'dean_stark': False, 'atmosphere': atmosphere}})
