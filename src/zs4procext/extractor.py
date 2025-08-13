@@ -256,6 +256,15 @@ class ActionExtractorFromText(BaseModel):
             except KeyError:
                 pass
         return action
+    
+    @staticmethod
+    def delete_material_dict_keys(dict_info: Dict[str, Any], keys_list):
+        for key in keys_list:
+            try:
+                del dict_info[key]
+            except KeyError:
+                pass
+        return dict_info
 
     @staticmethod
     def empty_action(action: Dict[str, Any]):
@@ -426,7 +435,7 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
-                action["content"]["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
                 elif content["ph"] is not None:
@@ -501,7 +510,7 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
-                action["content"]["material"] = ActionExtractorFromText.delete_dict_keys(content["material"], ["concentration"])
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 if content["material"]["name"] == "SLN":
                     pass
                 else:
