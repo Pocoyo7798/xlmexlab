@@ -19,7 +19,35 @@ class Chemical(BaseModel):
     _chemical_type: str = PrivateAttr(default="reactant")
     
     def get_chemical(self, schema: str, schema_parser: SchemaParser, complex_parser: ComplexParametersParser = None) -> bool:
-        dropwise = self.get_chemical(schema, schema_parser)
+        """get the chemical name from a schema
+
+        Args:
+            schema: string containing the schema
+
+        Returns:
+            True if the chemical was added dropwise or Flase otherwise
+        """
+        chemical_list = schema_parser.get_atribute_value(schema, "name")
+        dropwise_list = schema_parser.get_atribute_value(schema, "dropwise")
+        if len(chemical_list) == 0:
+            pass
+        elif len(chemical_list) == 1:
+            self.name = chemical_list[0]
+        else:
+            print("Warning: Two different chemical names have been found!")
+            self.name = chemical_list[0]
+        if len(dropwise_list) == 0:
+            dropwise = "False"
+        elif len(dropwise_list) == 1:
+            dropwise = dropwise_list[0]
+        else:
+            print("Warning: Two different dropwise values have been found!")
+            dropwise = dropwise_list[0]
+        dropwise = dropwise.strip()
+        if dropwise.lower() == "true":
+            new_dropwise = True
+        else:
+            new_dropwise = False
         if len(schema_parser.get_atribute_value(schema, "type")) > 0:
             if schema_parser.get_atribute_value(schema, "type")[0].lower() == "final solution":
                 self._chemical_type = "final solution"
@@ -39,7 +67,7 @@ class Chemical(BaseModel):
             pass
         else:
             self.concentration = concentration_list
-        return dropwise
+        return new_dropwise
     
     def get_quantity(self, text: str, amount_parser: ParametersParser, get_concentration: bool=False) -> Any:
         """get the amount of a chemical inside a string
