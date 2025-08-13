@@ -1340,25 +1340,26 @@ class ImageParser(BaseModel):
         if not isinstance(data, dict):
             return data
 
-        inner_data = data
-        x_key = next((k for k, v in inner_data.items() if isinstance(v, list)), None)
+        # Find the first list key to treat as x-axis
+        x_key = next((k for k, v in data.items() if isinstance(v, list)), None)
         if x_key is None:
             return data
 
-        x_values = inner_data[x_key]
-        
+        x_values = data[x_key]
         restructured = {}
-        for k, v in inner_data.items():
+
+        for k, v in data.items():
             if k == x_key:
                 continue
             if isinstance(v, list) and len(v) == len(x_values):
-                # always use the same y_key = outer_key if present
-                y_key = outer_key if outer_key else k
-                restructured[k] = {
+                # Always keep the y-axis key name as-is (k),
+                # only use outer_key as the *series name*
+                series_name = outer_key if outer_key else k
+                restructured[series_name] = {
                     x_key: x_values,
-                    y_key: v
+                    k: v
                 }
-        
+
         return restructured if restructured else data
 
     def _convert_na_to_null(self, data: Dict) -> Dict:
