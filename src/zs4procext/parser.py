@@ -1340,20 +1340,35 @@ class ImageParser(BaseModel):
         if not isinstance(data, dict):
             return data
 
-        # Find the first list key to treat as x-axis
+        # If outer_key is present and the inner dict has more than 3 keys → apply restructuring
+        if outer_key and isinstance(data, dict) and len(data) > 3:
+            # First key in the dict is assumed to be the x-axis
+            inner_keys = list(data.keys())
+            x_key = inner_keys[0]
+            x_values = data[x_key]
+
+            restructured = {}
+            for k in inner_keys[1:]:  # Skip x_key
+                v = data[k]
+                if isinstance(v, list) and len(v) == len(x_values):
+                    restructured[k] = {
+                        x_key: x_values,
+                        outer_key: v  # Use outer_key as y-axis label
+                    }
+
+            return restructured if restructured else data
+
+        # Otherwise: normal behavior
         x_key = next((k for k, v in data.items() if isinstance(v, list)), None)
         if x_key is None:
             return data
 
         x_values = data[x_key]
         restructured = {}
-
         for k, v in data.items():
             if k == x_key:
                 continue
             if isinstance(v, list) and len(v) == len(x_values):
-                # Always keep the y-axis key name as-is (k),
-                # only use outer_key as the *series name*
                 series_name = outer_key if outer_key else k
                 restructured[series_name] = {
                     x_key: x_values,
@@ -1361,6 +1376,7 @@ class ImageParser(BaseModel):
                 }
 
         return restructured if restructured else data
+
 
     def _convert_na_to_null(self, data: Dict) -> Dict:
         def convert_list(vals):
