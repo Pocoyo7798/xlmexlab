@@ -536,7 +536,8 @@ class ActionExtractorFromText(BaseModel):
                 action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "Quench":
-                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                if action["content"]["material"] is not None:
+                    action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "PH":
                 action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
