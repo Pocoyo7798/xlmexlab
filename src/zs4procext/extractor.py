@@ -521,30 +521,36 @@ class ActionExtractorFromText(BaseModel):
                     content["material_2"] = sorted_material_list[1]
                 new_action_list.append(action)
             elif action_name == "Add":
-                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
-                if content["material"]["name"] == "SLN":
-                    pass
-                else:
-                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
+                if action["content"]["material"] is not None:
+                    action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                    if content["material"]["name"] == "SLN":
+                        pass
+                    else:
+                        new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
             elif action_name == "Extract":
-                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                if action["content"]["solvent"] is not None:
+                    action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "Triturate":
-                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                if action["content"]["solvent"] is not None:
+                    action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "Recrystallize":
-                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                if action["content"]["solvent"] is not None:
+                    action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "Quench":
                 if action["content"]["material"] is not None:
                     action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 new_action_list.append(action)
             elif action_name == "PH":
-                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
-                new_action = {'action': 'Add', 'content': {'material': content["material"], 'dropwise': content["dropwise"], 'atmosphere': None, 'duration': None}}
-                new_action_list.append(new_action)
+                if action["content"]["material"] is not None:
+                    action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                    new_action = {'action': 'Add', 'content': {'material': content["material"], 'dropwise': content["dropwise"], 'atmosphere': None, 'duration': None}}
+                    new_action_list.append(new_action)
             elif action_name == "Wash":
-                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                if action["content"]["material"] is not None:
+                    action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "method"]))
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
