@@ -1293,6 +1293,7 @@ class ImageParser(BaseModel):
         return json.loads(s)
 
     def _parse_input(self, input_data: Union[str, dict]):
+        print("RAW INPUT DATA:", input_data)
         if isinstance(input_data, dict):
             input_data = self._convert_na_to_null(input_data)
             input_data = self._clean_keys(input_data)
