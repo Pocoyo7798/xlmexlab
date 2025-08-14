@@ -31,7 +31,6 @@ from zs4procext.actions import (
     ORGANIC_ACTION_REGISTRY,
     SAC_ACTION_REGISTRY,
     Add,
-    MakeSolutionSAC,
     Crystallization,
     CollectLayer,
     DrySolution,
@@ -46,8 +45,7 @@ from zs4procext.actions import (
     Stir,
     ThermalTreatment,
     Transfer,
-    WashMaterial,
-    WashSAC,
+    Wash,
 )
 from zs4procext.llm import ModelLLM, ModelVLM
 from zs4procext.parser import (
@@ -356,6 +354,10 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 else:
                     new_action_list.append(action)
+            elif action_name == "Wash":
+                if content["repetitions"] > 1:                    
+                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
+                    new_action_list.append({'action': 'Repeat', 'content': {'amount': content["repetitions"]}})
             elif action_name == "Repeat" and len(new_action_list) > 1:
                 pre_action = new_action_list[-1]
                 amount = float(action["content"]["amount"])
@@ -426,9 +428,12 @@ class ActionExtractorFromText(BaseModel):
                     material_1 = content["material_2"]
                     content["material_1"] = material_1
                     content["material_2"] = None
+                    action["content"]["material1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
                 elif content["material_2"] is None:
                     pass
                 else:
+                    action["content"]["material1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
+                    action["content"]["material2"] = ActionExtractorFromText.delete_material_dict_keys(content["material2"], ["concentration"])
                     materials_list = [content["material_1"], content["material_2"]]
                     sorted_material_list = sorted(materials_list, key=lambda d: d["name"])
                     content["material_1"] = sorted_material_list[0]
@@ -442,6 +447,9 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append({'action': 'PH', 'content': {'ph': content["ph"], 'material': content["material"], 'dropwise': content["dropwise"]}})
                 else:
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
+            elif action_name == "Wash":
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "method"]))
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "SetTemperature":
@@ -501,9 +509,12 @@ class ActionExtractorFromText(BaseModel):
                     material_1 = content["material_2"]
                     content["material_1"] = material_1
                     content["material_2"] = None
+                    action["content"]["material1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
                 elif content["material_2"] is None:
                     pass
                 else:
+                    action["content"]["material1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
+                    action["content"]["material2"] = ActionExtractorFromText.delete_material_dict_keys(content["material2"], ["concentration"])
                     materials_list = [content["material_1"], content["material_2"]]
                     sorted_material_list = sorted(materials_list, key=lambda d: d["name"])
                     content["material_1"] = sorted_material_list[0]
@@ -515,9 +526,25 @@ class ActionExtractorFromText(BaseModel):
                     pass
                 else:
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["ph"]))
+            elif action_name == "Extract":
+                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                new_action_list.append(action)
+            elif action_name == "Triturate":
+                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                new_action_list.append(action)
+            elif action_name == "Recrystallize":
+                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                new_action_list.append(action)
+            elif action_name == "Quench":
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                new_action_list.append(action)
             elif action_name == "PH":
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
                 new_action = {'action': 'Add', 'content': {'material': content["material"], 'dropwise': content["dropwise"], 'atmosphere': None, 'duration': None}}
                 new_action_list.append(new_action)
+            elif action_name == "Wash":
+                action["content"]["material"] = ActionExtractorFromText.delete_material_dict_keys(content["material"], ["concentration"])
+                new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "method"]))
             elif action_name in ["CollectLayer", "Yield"]:
                 pass
             elif action_name == "Centrifuge":
@@ -714,11 +741,9 @@ class ActionExtractorFromText(BaseModel):
             elif action in set([ThermalTreatment, Stir]):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
-            elif action in set([MakeSolution, Quench]):
+            elif action in set([Quench]):
                 if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
-                elif action is MakeSolution:
-                    chemical_prompt = self._solution_chemical_prompt.format_prompt(f"'{context}'")
                 else:
                     chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
                 chemical_response = self._llm_model.run_single_prompt(chemical_prompt).strip()
@@ -734,10 +759,10 @@ class ActionExtractorFromText(BaseModel):
                     self._banned_parser
                 )
                 action_list.extend(new_action)
-            elif action in set([MakeSolutionSAC, Add, NewSolution]):
+            elif action in set([MakeSolution,Add, NewSolution]):
                 if action is Add:
                     chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
-                elif action is NewSolution or action is MakeSolutionSAC:
+                elif action is NewSolution or action is MakeSolution:
                     chemical_prompt = self._solution_chemical_prompt.format_prompt(f"'{context}'")
                 else:
                     chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
@@ -755,16 +780,7 @@ class ActionExtractorFromText(BaseModel):
                     complex_parser=self._complex_parser
                 )
                 action_list.extend(new_action)
-            elif action is WashMaterial:
-                chemical_prompt = self._wash_chemical_prompt.format_prompt(f"'{context}'")
-                chemical_response = self._llm_model.run_single_prompt(chemical_prompt)
-                print(chemical_response)
-                schemas = self._schema_parser.parse_schema(chemical_response)
-                new_action = action.generate_action(
-                    context, schemas, self._schema_parser, self._quantity_parser, self._centri_parser, self._filter_parser, self._banned_parser
-                )
-                action_list.extend(new_action)
-            elif action is WashSAC:
+            elif action is Wash:
                 chemical_prompt = self._wash_chemical_prompt.format_prompt(f"'{context}'")
                 chemical_response = self._llm_model.run_single_prompt(chemical_prompt)
                 print(chemical_response)
