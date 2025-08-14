@@ -529,6 +529,9 @@ class ActionExtractorFromText(BaseModel):
             elif action_name == "Extract":
                 action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)
+            elif action_name == "Triturate":
+                action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
+                new_action_list.append(action)
             elif action_name == "Recrystallize":
                 action["content"]["solvent"] = ActionExtractorFromText.delete_material_dict_keys(content["solvent"], ["concentration"])
                 new_action_list.append(action)

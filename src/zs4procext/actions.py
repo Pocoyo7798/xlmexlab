@@ -334,7 +334,7 @@ class PH(ActionsWithChemicalAndConditions):
         action = cls(action_name="PH", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -357,49 +357,6 @@ class PH(ActionsWithChemicalAndConditions):
             )
         return [action.generate_dict()]
 
-
-class Add2(ActionsWithChemicalAndConditions):
-    material: Optional[Chemical] = None
-    dropwise: bool = False
-    temperature: Optional[str] = None
-    atmosphere: List[str] = []
-    duration: Optional[str] = None
-
-    @classmethod
-    def generate_action(
-        cls,
-        context: str,
-        schemas: List[str],
-        schema_parser: SchemaParser,
-        amount_parser: ParametersParser,
-        conditions_parser: ParametersParser,
-        ph_parser: KeywordSearching,
-        banned_parser: KeywordSearching
-    ) -> List[Dict[str, Any]]:
-        if len(ph_parser.find_keywords(context)) > 0:
-            return PH.generate_action(
-                context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser
-            )
-        action = cls(action_name="Add", action_context=context)
-        action.validate_conditions(conditions_parser)
-        chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
-        )
-        list_of_actions = []
-        if len(chemicals_info.chemical_list) == 0:
-            pass
-        elif len(chemicals_info.chemical_list) == 1:
-            action.material = chemicals_info.chemical_list[0]
-            action.dropwise = chemicals_info.dropwise[0]
-            list_of_actions.append(action.generate_dict())
-        else:
-            i = 0
-            for chemical in chemicals_info.chemical_list:
-                action.material = chemical
-                action.dropwise = chemicals_info.dropwise[i]
-                list_of_actions.append(action.generate_dict())
-                i += 1
-        return list_of_actions
 
 class Add(ActionsWithChemicalAndConditions):
     material: Optional[Chemical] = None
@@ -549,7 +506,7 @@ class DrySolution(ActionsWithChemicalAndConditions):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="DrySolution", action_context=context)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             return DrySolid.generate_action(context, conditions_parser)
@@ -578,7 +535,7 @@ class Extract(ActionsWithchemicals):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Extract", action_context=context)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -697,13 +654,13 @@ class MakeSolution(ActionsWithChemicalAndConditions):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         ph_parser: KeywordSearching,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
+        complex_parser=None
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="MakeSolution", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
-        )
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser)
         if len(chemicals_info.chemical_list) == 0:
             pass
         elif len(chemicals_info.chemical_list) == 1:
@@ -714,7 +671,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 amount_parser,
                 conditions_parser,
                 ph_parser,
-                banned_parser
+                banned_parser,
             )
         else:
             action.materials = chemicals_info.chemical_list
@@ -753,7 +710,7 @@ class Partition(ActionsWithchemicals):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Partition", action_context=context)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -818,7 +775,7 @@ class Quench(ActionsWithChemicalAndConditions):
         action = cls(action_name="Quench", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -860,7 +817,7 @@ class Recrystallize(ActionsWithChemicalAndConditions):
         action = cls(action_name="Recrystallize", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -992,7 +949,7 @@ class Triturate(ActionsWithchemicals):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Triturate", action_context=context)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -1087,7 +1044,7 @@ class Yield(ActionsWithchemicals):
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="Yield", action_context=context)
         chemicals_info = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, banned_parser, action.action_context
+            schemas, schema_parser, amount_parser, action.action_context, banned_parser
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
