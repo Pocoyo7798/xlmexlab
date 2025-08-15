@@ -355,9 +355,11 @@ class ActionExtractorFromText(BaseModel):
                 else:
                     new_action_list.append(action)
             elif action_name == "Wash":
-                if content["repetitions"] > 1:                    
+                if content["repetitions"] > 1:                  
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
                     new_action_list.append({'action': 'Repeat', 'content': {'amount': content["repetitions"]}})
+                else:
+                    new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
             elif action_name == "Repeat" and len(new_action_list) > 1:
                 pre_action = new_action_list[-1]
                 amount = float(action["content"]["amount"])
