@@ -295,7 +295,6 @@ class Treatment(ActionsWithChemicalAndConditions):
             action.repetitions = chemicals_info.repetitions
         concentration: List[str] = re.findall(r'\d+', str(action.suspension_concentration))
         list_of_actions: List[Any] = []
-        print(action.solutions)
         if len(action.solutions) > 0:
             list_of_actions.append(NewSolution(action_name="NewSolution").generate_dict())
             for solution in action.solutions:
@@ -788,7 +787,6 @@ class Quench(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Material found on Quench object, only the first one was considered"
             )
-        print(ph_parser.find_keywords(context))
         if len(ph_parser.find_keywords(context)) > 0:
             new_action: List[Dict[str, Any]] = PH.generate_action(
                 context, schemas, schema_parser, amount_parser, conditions_parser
@@ -1217,7 +1215,6 @@ class Repeat(Actions):
     
     @classmethod
     def generate_action(cls, context: str):
-        print(context)
         action: Repeat = cls(action_name="Repeat", action_context=context)
         number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
         if len(number_list) == 0:
@@ -1232,7 +1229,6 @@ class Repeat(Actions):
         list_of_actions: List[Any] = []
         if 6 > action.amount > 1:
             list_of_actions.append(action.generate_dict())
-        print(list_of_actions)
         return list_of_actions
     
 class Transfer(Actions):
@@ -1240,7 +1236,6 @@ class Transfer(Actions):
     
     @classmethod
     def generate_action(cls, context: str, schemas: List[str], schemas_parser: SchemaParser, banned_transfer_parser: KeywordSearching):
-        print(context)
         action: Transfer = cls(action_name="Transfer", action_context=context)
         if len(schemas) == 0:
             pass

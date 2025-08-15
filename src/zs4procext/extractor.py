@@ -857,12 +857,11 @@ class ActionExtractorFromText(BaseModel):
                 new_action = action.generate_action(context)
                 action_list.extend(new_action)
             i = i + 1
+        print(action_list)
         if self.post_processing is False:
             final_actions_list = action_list
         elif self.actions_type == "pistachio":
-            print(action_list)
             final_actions_list: List[Any] = ActionExtractorFromText.correct_pistachio_action_list(action_list)
-            print(final_actions_list)
         elif self.actions_type == "organic":
             final_actions_list = ActionExtractorFromText.correct_organic_action_list(action_list)
         elif self.actions_type == "materials":
@@ -871,6 +870,7 @@ class ActionExtractorFromText(BaseModel):
             final_actions_list = ActionExtractorFromText.correct_sac_action_list(action_list)
         else:
             final_actions_list = action_list
+        print(final_actions_list)
         if self.elementar_actions is True:
             final_actions_list = ActionExtractorFromText.transform_elementary(final_actions_list)
         return final_actions_list
