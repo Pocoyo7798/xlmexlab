@@ -509,12 +509,12 @@ class ActionExtractorFromText(BaseModel):
                     material_1 = content["material_2"]
                     content["material_1"] = material_1
                     content["material_2"] = None
-                    action["content"]["material1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
+                    action["content"]["material_1"] = ActionExtractorFromText.delete_material_dict_keys(content["material_1"], ["concentration"])
                 elif content["material_2"] is None:
                     pass
                 else:
-                    action["content"]["material_1"] = ActionExtractorFromText.delete_material_dict_keys(content["material1"], ["concentration"])
-                    action["content"]["material_2"] = ActionExtractorFromText.delete_material_dict_keys(content["material2"], ["concentration"])
+                    action["content"]["material_1"] = ActionExtractorFromText.delete_material_dict_keys(content["material_1"], ["concentration"])
+                    action["content"]["material_2"] = ActionExtractorFromText.delete_material_dict_keys(content["material_2"], ["concentration"])
                     materials_list = [content["material_1"], content["material_2"]]
                     sorted_material_list = sorted(materials_list, key=lambda d: d["name"])
                     content["material_1"] = sorted_material_list[0]
