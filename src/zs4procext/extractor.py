@@ -345,6 +345,7 @@ class ActionExtractorFromText(BaseModel):
                     add_new_solution = False
                     new_action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
                 if content["atmosphere"] != [] and content["atmosphere"] != current_atmosphere:
+                    current_atmosphere = content["atmosphere"]
                     new_action_list.append({'action': 'SetAtmosphere', 'content': {'atmosphere': content["atmosphere"], 'pressure': None, 'flow_rate': None}})
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere"]))
             elif action["action"] == "NewSolution":
