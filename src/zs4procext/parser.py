@@ -851,7 +851,7 @@ class MolarRatioFinder(BaseModel):
     
     def model_post_init(self, __context: Any):
         tre_regex: re.Pattern[str] = correct_tre(self.chemicals_list)
-        self._regex = re.compile(rf"(([   \t\(]*([\d\.\s\-–−]|[xyznkabc\+])*[   \t\)]*({tre_regex})[   \t\()]*([\d\.\s\-–−]|[xyznkabc\+])*\)?" + r"[   \t\)]*[:\/\-]?){3,})", re.IGNORECASE | re.MULTILINE)
+        self._regex = re.compile(rf"(([   \t\(]*([\d\.\s\-–−]|[xyznkabc\+])*[   \t\)]*(\b{tre_regex}\b)[   \t\()]*([\d\.\s\-–−]|[xyznkabc\+])*\)?" + r"[   \t\)]*[:\/\-]?){3,})", re.IGNORECASE | re.MULTILINE)
         self._entries_regex = re.compile(rf"[   \t\(]*(?P<number1>\+?-?-?\d+\.?,?\d*[-–−]*?\d*\.?,?\d*|[xXyYzZnkaAbBcC\+]\d?)*[   \t\-)]*(?P<chemical>({tre_regex}))[   \t\(-]*(?P<number2>\+?-?-?\d+\.?,?\d*[-–−]*?\d*\.?,?\d*|[xXyYzZnkaAbBcC\+]\d?)*[   \t\)]*[:\/\-]?", re.MULTILINE)
         self._single_ratio_regex = re.compile(rf"(?P<chemical1>({tre_regex}))[ \t]*[/]+[ \t]*(?P<chemical2>({tre_regex}))[ \t]*(=|is|was)[ \t]*(?P<value>[\d\.-–−]+)", re.IGNORECASE | re.MULTILINE)
         self._single_value_regex = re.compile(rf"(?P<chemical>({tre_regex}))[ \t]*(=|is|was)[ \t]*(?P<value>[\d\.-–−]+)", re.IGNORECASE | re.MULTILINE)
@@ -891,6 +891,7 @@ class MolarRatioFinder(BaseModel):
     
     def substitute(self, text:str):
         molar_ratio_list = self.find_molar_ratio(text)
+        print(molar_ratio_list)
         if len(molar_ratio_list) == 0:
             return text
         for molar_ratio in molar_ratio_list:
