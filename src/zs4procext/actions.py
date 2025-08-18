@@ -309,6 +309,8 @@ class Treatment(ActionsWithChemicalAndConditions):
         if action.duration is not None:
             new_action = Stir(action_name="Stir", duration=action.duration)
             list_of_actions.append(new_action.generate_dict())
+        if action.repetitions > 1:
+            list_of_actions.append(Repeat(action_name="Repeat", amount=action.repetitions))
         list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
 
@@ -1026,6 +1028,8 @@ class Wash(ActionsWithChemicalAndConditions):
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
                 list_of_actions.append(action.generate_dict())
+        if action.repetitions == 1:
+            list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
 
 class Yield(ActionsWithchemicals):
