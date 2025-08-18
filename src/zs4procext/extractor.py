@@ -317,6 +317,7 @@ class ActionExtractorFromText(BaseModel):
     def correct_action_list(action_dict_list: List[Dict[str, Any]]):
         new_action_list = []
         initial_temp = None
+        current_atmosphere = None
         add_new_solution = True
         i_new_solution = 0
         i = 0
@@ -339,10 +340,11 @@ class ActionExtractorFromText(BaseModel):
                     del content["temperature"]
             except KeyError:
                 pass
-            if action_name == "Add" and add_new_solution is True:
-                add_new_solution = False
-                new_action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
-                if content["atmosphere"] != []:
+            if action_name == "Add":
+                if add_new_solution is True:
+                    add_new_solution = False
+                    new_action_list.insert(i_new_solution, NewSolution(action_name="NewSolution").generate_dict())
+                if content["atmosphere"] != [] and content["atmosphere"] != current_atmosphere:
                     new_action_list.append({'action': 'SetAtmosphere', 'content': {'atmosphere': content["atmosphere"], 'pressure': None, 'flow_rate': None}})
                 new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["atmosphere"]))
             elif action["action"] == "NewSolution":
