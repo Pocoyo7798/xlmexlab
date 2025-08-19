@@ -665,7 +665,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
         chemicals_info = action.validate_chemicals(
             schemas, schema_parser, amount_parser, action.action_context, banned_parser)
         if len(chemicals_info.chemical_list) == 0:
-            pass
+            return []
         elif len(chemicals_info.chemical_list) == 1:
             return Add.generate_action(
                 context,
@@ -682,7 +682,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 if test is True:
                     action.dropwise = True
                     break
-        return [action.generate_dict()]
+            return [action.generate_dict()]
     
 
 class Microwave(ActionsWithConditons):
@@ -734,19 +734,23 @@ class PhaseSeparation(Actions):
     def generate_action(
         cls,
         context: str,
+        conditions_parser: ParametersParser,
         filtrate_parser: KeywordSearching,
         precipitate_parser: KeywordSearching,
         centrifuge_parser: KeywordSearching,
         filter_parser: KeywordSearching,
-
+        evaporation_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         action = cls(action_name="PhaseSeparation", action_context=context)
-        filter_results = filter_parser.find_keywords(action.action_context)
-        centrifuge_results = centrifuge_parser.find_keywords(action.action_context)
+        filter_results = filter_parser.find_keywords(action.action_context.lower())
+        centrifuge_results = centrifuge_parser.find_keywords(action.action_context.lower())
+        evaporation_results = evaporation_parser.find_keywords(action.action_context.lower())
         if len(filter_results) > 0:
             return Filter.generate_action(context, filtrate_parser, precipitate_parser)
         elif len(centrifuge_results) > 0:
             return Centrifuge.generate_action(context, filtrate_parser, precipitate_parser)
+        elif len(evaporation_results) > 0:
+            return DrySolid.generate_action(context, conditions_parser)
         else:
             return [action.generate_dict()]
 
@@ -1585,6 +1589,12 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "synthesisproduct": None,
     "synthesismethod": None,
     "synthesisvariant": None,
+    "evaporate": Dry,
+    "immerse": Add,
+    "mix": Add,
+    "reduce": ThermalTreatment,
+    "calcine": ThermalTreatment,
+    "carbonize": ThermalTreatment,
     "yield": None,
     "noaction": None,
     "transfer": Transfer,

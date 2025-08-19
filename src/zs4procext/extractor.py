@@ -615,13 +615,17 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(action)
             elif action_name == "Transfer":
                 action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
-                new_action_list.append(action)
-            elif action_name == "Degas":
+                if action["content"]["recipient"] is not "":
+                    new_action_list.append(action)
+            elif action_name in set(["PhaseSeparation", "Degas"]):
                 pass
+            elif action_name == "Dry":
+                action["action"] = "DrySolid"
+                new_action_list.append(action)
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     new_action_list.append({'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}})
-                else:
+                elif new_temp is not None:
                     new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp}})   
                     if content["stirring_speed"] is not None:
                         new_action_list.append({'action': 'Stir', 'content': {'duration':  content["duration"], 'stirring_speed': content["stirring_speed"]}})
@@ -818,8 +822,8 @@ class ActionExtractorFromText(BaseModel):
                 action_list.extend(new_action)
             elif action is PhaseSeparation:
                 new_action = action.generate_action(
-                    context, self._filtrate_parser, self._precipitate_parser,
-                    self._centri_parser, self._filter_parser
+                    context, self._condition_parser, self._filtrate_parser, self._precipitate_parser,
+                    self._centri_parser, self._filter_parser, self._evaporation_parser
                 )
                 action_list.extend(new_action)
             elif action.type == "onlyconditions":

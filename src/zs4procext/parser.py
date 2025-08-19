@@ -698,6 +698,9 @@ class ActionsParser(BaseModel):
             if action == actions[i + 1] and len(content[i]) < 6:
                 del actions[i]
                 del content[i]
+            elif content[i].replace(":", "").strip.lower() == "n/a":
+                del actions[i]
+                del content[i]
             else:
                 i += 1
         return {"actions": actions, "content": content}
