@@ -359,8 +359,9 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append(action)
             elif action_name == "Wash":
                 if content["repetitions"] > 1:                  
+                    repeat_action = {'action': 'Repeat', 'content': {'amount': content["repetitions"]}}
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
-                    new_action_list.append({'action': 'Repeat', 'content': {'amount': content["repetitions"]}})
+                    new_action_list.append(repeat_action)
                 else:
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
             elif action_name == "Repeat" and len(new_action_list) > 1:
