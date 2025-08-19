@@ -597,11 +597,6 @@ class ActionExtractorFromText(BaseModel):
                     new_temp = "0 °C"
                 elif new_temp.lower() == "cool":
                     new_temp = "room temperature"
-                if new_temp != initial_temp and new_temp is not None:
-                    initial_temp = new_temp
-                    if action_name not in ["ThermalTreatment", "Dry"]:
-                        new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp, 'microwave': False, "heat_ramp": None}})
-                        del content["temperature"]
             except KeyError:
                 pass
             if action_name == "Add":

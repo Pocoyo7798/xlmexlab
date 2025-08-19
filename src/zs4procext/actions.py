@@ -1613,7 +1613,8 @@ PRECIPITATE_REGISTRY: List[str] = [
 FILTER_REGISTRY: List[str] = [
     "filtrate",
     "filter",
-    "filtration"
+    "filtration",
+    "filtering"
 ]
 CENTRIFUGATION_REGISTRY: List[str] = [
     "centrifuge",
