@@ -617,6 +617,8 @@ class ActionExtractorFromText(BaseModel):
             elif action_name == "Transfer":
                 action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
                 new_action_list.append(action)
+            elif action_name == "DEGAS":
+                pass
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     if new_temp is None:
