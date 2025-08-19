@@ -1024,25 +1024,43 @@ class Wash(ActionsWithChemicalAndConditions):
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
+            number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+            if action.repetitions == 1:
+                if len(number_list) == 0:
+                    pass
+                elif len(number_list) == 1:
+                    action.repetitions = int(float(number_list[0]))
+                else:
+                    action.repetitions = int(float(number_list[0]))
+                    print(
+                        "Warning: More than one adimensional number was found, only the first one was considered"
+                        )
+                list_of_actions: List[Any] = []
+                if 6 > action.repetitions > 1:
+                    pass
+                else:
+                    action.repetitions = 1
             list_of_actions.append(action.generate_dict())
         else:
             for material in chemicals_info.chemical_list:
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
-                list_of_actions.append(action.generate_dict())
-        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
-        if action.repetitions == 1:
-            if len(number_list) == 0:
-                pass
-            elif len(number_list) == 1:
-                action.amount = int(float(number_list[0]))
-            else:
-                action.amount = int(float(number_list[0]))
-                print(
-                    "Warning: More than one adimensional number was found, only the first one was considered"
-                    )
-            list_of_actions: List[Any] = []
-            if 6 > action.amount > 1:
+                number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+                if action.repetitions == 1:
+                    if len(number_list) == 0:
+                        pass
+                    elif len(number_list) == 1:
+                        action.repetitions = int(float(number_list[0]))
+                    else:
+                        action.repetitions = int(float(number_list[0]))
+                        print(
+                            "Warning: More than one adimensional number was found, only the first one was considered"
+                            )
+                    list_of_actions: List[Any] = []
+                    if 6 > action.repetitions > 1:
+                        pass
+                    else:
+                        action.repetitions = 1
                 list_of_actions.append(action.generate_dict())
         return list_of_actions
 
