@@ -618,6 +618,10 @@ class ActionExtractorFromText(BaseModel):
             elif action_name == "Filter":
                 if content["phase_to_keep"] is None:
                     action["content"]["phase_to_keep"] = "precipitate"
+                new_action_list.append(action)
+            elif action_name == "Transfer":
+                action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
+                new_action_list.append(action)
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
                     if new_temp is None:
