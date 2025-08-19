@@ -585,7 +585,6 @@ class ActionExtractorFromText(BaseModel):
     @staticmethod
     def correct_sac_action_list(action_dict_list: List[Dict[str, Any]]):
         new_action_list = []
-        initial_temp = None
         for action in action_dict_list:
             action_name = action["action"]
             content = action["content"]
@@ -617,18 +616,17 @@ class ActionExtractorFromText(BaseModel):
             elif action_name == "Transfer":
                 action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
                 new_action_list.append(action)
-            elif action_name == "DEGAS":
+            elif action_name == "Degas":
                 pass
             elif action_name == "SetTemperature":
                 if len(content["atmosphere"]) > 0:
-                    if new_temp is None:
-                        new_action_list.append({'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}})
-                    else:
-                        new_action_list[-1] = {'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}}
-                elif content["stirring_speed"] is not None:
-                    new_action_list.append({'action': 'Stir', 'content': {'duration':  content["duration"], 'stirring_speed': content["stirring_speed"]}})
-                elif content["duration"] is not None:
-                    new_action_list.append({'action': 'Wait', 'content': {'duration': content["duration"]}})
+                    new_action_list.append({'action': 'ThermalTreatment', 'content': {'temperature': new_temp, 'duration': content["duration"], 'heat_ramp': content["heat_ramp"], 'atmosphere': content["atmosphere"], 'flow_rate': None}})
+                else:
+                    new_action_list.append({'action': 'SetTemperature', 'content': {'temperature': new_temp}})   
+                    if content["stirring_speed"] is not None:
+                        new_action_list.append({'action': 'Stir', 'content': {'duration':  content["duration"], 'stirring_speed': content["stirring_speed"]}})
+                    elif content["duration"] is not None:
+                        new_action_list.append({'action': 'Wait', 'content': {'duration': content["duration"]}})
             else:
                 new_action_list.append(action)
         return new_action_list
