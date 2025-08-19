@@ -311,6 +311,8 @@ class Treatment(ActionsWithChemicalAndConditions):
             list_of_actions.append(new_action.generate_dict())
         if action.repetitions > 1:
             list_of_actions.append(Repeat(action_name="Repeat", amount=action.repetitions))
+        elif action.repetitions == 1:
+            list_of_actions.extend(Repeat.generate_action(context))
         list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
 
@@ -1028,8 +1030,20 @@ class Wash(ActionsWithChemicalAndConditions):
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
                 list_of_actions.append(action.generate_dict())
+        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
         if action.repetitions == 1:
-            list_of_actions.extend(Repeat.generate_action(context))
+            if len(number_list) == 0:
+                pass
+            elif len(number_list) == 1:
+                action.amount = int(float(number_list[0]))
+            else:
+                action.amount = int(float(number_list[0]))
+                print(
+                    "Warning: More than one adimensional number was found, only the first one was considered"
+                    )
+            list_of_actions: List[Any] = []
+            if 6 > action.amount > 1:
+                list_of_actions.append(action.generate_dict())
         return list_of_actions
 
 class Yield(ActionsWithchemicals):
