@@ -1024,7 +1024,7 @@ class Wash(ActionsWithChemicalAndConditions):
         elif len(centrifuge_results) > 0:
             action.method = "centrifugation"
         if len(chemicals_info.chemical_list) == 0:
-            pass
+            list_of_actions.append(action.generate_dict())
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
