@@ -68,7 +68,7 @@ class ModelLLM(BaseModel):
             output = self.model.generate(prompt, self.params)
         else:
              prompt = TextPrompt(prompt=prompt)
-             output = self.model.beam_search(prompt, self.params)
+             output = self.model.beam_search([prompt], self.params)
              for beam in output:
                  print(beam)
         return output.outputs[0].text
