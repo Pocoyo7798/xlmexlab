@@ -16,7 +16,7 @@ class ModelLLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
-    model: LLM = None
+    model: Any = None
     params: Any = None
 
     def vllm_load_model(self) -> None:
@@ -67,7 +67,10 @@ class ModelLLM(BaseModel):
         elif self.model_parameters["use_beam_search"] is False:
             output = self.model.generate(prompt, self.params)
         else:
-             output = self.model.beam_search([prompt], self.params)[0]
+             prompt = TextPrompt(prompt=prompt)
+             output = self.model.beam_search(prompt, self.params)
+             for beam in output:
+                 print(beam)
         return output.outputs[0].text
 
 class ModelVLM(BaseModel):
