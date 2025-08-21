@@ -17,7 +17,7 @@ class ModelLLM(BaseModel):
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
     model: Optional[LLM] = None
-    params: Optional[SamplingParams|BeamSearchParams]
+    params: Optional[SamplingParams|BeamSearchParams] = None
 
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
@@ -49,6 +49,7 @@ class ModelLLM(BaseModel):
                                             ignore_eos=self.model_parameters["ignore_eos"])
             else:
                 self.params = BeamSearchParams(beam_width=self.model_parameters["n"],max_tokens=self.model_parameters["max_new_tokens"],ignore_eos=self.model_parameters["ignore_eos"])
+    
     def load_model_parameters(self, file_path: str) -> None:
         """Load the model paramaters from a json file
 
