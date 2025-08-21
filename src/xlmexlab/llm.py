@@ -1,5 +1,7 @@
 import json
 from typing import Any, Dict, Optional
+from vllm import LLM, SamplingParams, RequestOutput
+from vllm.sampling_params import BeamSearchParams
 
 from langchain_community.llms import VLLM
 from pydantic import BaseModel, PrivateAttr
@@ -14,47 +16,39 @@ class ModelLLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
-    model: Optional[VLLM] = None
+    model: Optional[LLM] = None
+    params: Optional[SamplingParams|BeamSearchParams]
 
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
         if self.model_parameters == {}:
-            self.model = VLLM(model=self.model_name)
+            self.model = LLM(model=self.model_name, 
+                             tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
+                             dtype=self.model_parameters["dtype"],
+                             trust_remote_code=self.model_parameters["trust_remote_code"],
+                             quantization=self.model_parameters["quantization"],
+                             max_seq_len_to_capture=self.model_parameters["max_model_len"],
+                             gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"]
+                            )
         else:
-            self.model = VLLM(
-                model=self.model_name,
-                best_of=self.model_parameters["best_of"],
-                cache=self.model_parameters["cache"],
-                callback_manager=self.model_parameters["callback_manager"],
-                callbacks=self.model_parameters["callbacks"],
-                download_dir=self.model_parameters["download_dir"],
-                dtype=self.model_parameters["dtype"],
-                frequency_penalty=self.model_parameters["frequency_penalty"],
-                ignore_eos=self.model_parameters["ignore_eos"],
-                logprobs=self.model_parameters["logprobs"],
-                max_new_tokens=self.model_parameters["max_new_tokens"],
-                metadata=self.model_parameters["metadata"],
-                n=self.model_parameters["n"],
-                presence_penalty=self.model_parameters["presence_penalty"],
-                stop=self.model_parameters["stop"],
-                tags=self.model_parameters["tags"],
-                temperature=self.model_parameters["temperature"],
-                tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
-                top_k=self.model_parameters["top_k"],
-                top_p=self.model_parameters["top_p"],
-                trust_remote_code=self.model_parameters["trust_remote_code"],
-                use_beam_search=self.model_parameters["use_beam_search"],
-                vllm_kwargs={
-                    "gpu_memory_utilization": self.model_parameters[
-                        "gpu_memory_utilization"
-                    ],
-                    "seed": self.model_parameters["seed"],
-                    "enforce_eager": self.model_parameters["enforce-eager"],
-                    "quantization": self.model_parameters["quantization"],
-                    "max_model_len": self.model_parameters["max_model_len"]
-                },
-            )
-
+            self.model = LLM(model=self.model_name)
+            if self.model_parameters["best_of"] is None:
+                self.model_parameters["best_of"] = self.model_parameters["n"]
+            if self.model_parameters["use_beam_search"] is False:
+                self.params = SamplingParams(best_of=self.model_parameters["best_of"], 
+                                            presence_penalty=self.model_parameters["presence_penalty"],
+                                            frequency_penalty=self.model_parameters["frequency_penalty"],
+                                            temperature=self.model_parameters["temperature"],
+                                            top_p=self.model_parameters["top_p"],
+                                            top_k=self.model_parameters["top_k"],
+                                            seed=self.model_parameters["seed"],
+                                            n=self.model_parameters["n"],
+                                            max_tokens=self.model_parameters["max_new_tokens"],
+                                            stop=self.model_parameters["stop"],
+                                            logprobs=self.model_parameters["logprobs"],
+                                            ignore_eos=self.model_parameters["ignore_eos"])
+            else:
+                self.params = BeamSearchParams(beam_width=self.model_parameters["n"],max_tokens=self.model_parameters["max_new_tokens"],ignore_eos=self.model_parameters["ignore_eos"])
     def load_model_parameters(self, file_path: str) -> None:
         """Load the model paramaters from a json file
 
@@ -67,7 +61,11 @@ class ModelLLM(BaseModel):
     def run_single_prompt(self, prompt: str) -> str:
         if self.model is None:
             raise AttributeError("The LLM model is not loaded")
-        return self.model(prompt)
+        if self.model_parameters == {}:
+            output: list[RequestOutput] = self.model.generate(prompt,)
+        else:
+            output = self.model.generate(prompt, self.params)
+        return output.outputs[0].text
 
 class ModelVLM(BaseModel):
     model_name: str
