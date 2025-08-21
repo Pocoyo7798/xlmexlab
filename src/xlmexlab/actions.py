@@ -3,7 +3,7 @@ from typing import Any, ClassVar, Dict, List, Optional
 from pydantic import BaseModel, validator, PrivateAttr
 import re
 
-from zs4procext.parser import (
+from xlmexlab.parser import (
     Conditions,
     ComplexParametersParser,
     DimensionlessParser,

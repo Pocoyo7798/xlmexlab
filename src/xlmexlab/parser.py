@@ -52,7 +52,7 @@ class Parameters(BaseModel):
 
 class ParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )
@@ -313,7 +313,7 @@ class ParametersParser(BaseModel):
 
 class ListParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )
@@ -581,7 +581,7 @@ class ListParametersParser(BaseModel):
 
 class ComplexParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )

@@ -12,7 +12,7 @@ from PIL import Image
 import click
 
 
-from zs4procext.actions import (
+from xlmexlab.actions import (
     ACTION_REGISTRY,
     AQUEOUS_REGISTRY,
     BANNED_CHEMICALS_REGISTRY,
@@ -47,8 +47,8 @@ from zs4procext.actions import (
     Transfer,
     Wash,
 )
-from zs4procext.llm import ModelLLM, ModelVLM
-from zs4procext.parser import (
+from xlmexlab.llm import ModelLLM, ModelVLM
+from xlmexlab.parser import (
     ActionsParser,
     ComplexParametersParser,
     EquationFinder,
@@ -63,7 +63,7 @@ from zs4procext.parser import (
     SchemaParser,
     VariableFinder
 )
-from zs4procext.prompt import PromptFormatter
+from xlmexlab.prompt import PromptFormatter
 
 
 class ActionExtractorFromText(BaseModel):
@@ -111,7 +111,7 @@ class ActionExtractorFromText(BaseModel):
         if self.actions_type == "pistachio":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "organic_synthesis_actions_schema.json"
                 )
@@ -121,7 +121,7 @@ class ActionExtractorFromText(BaseModel):
         elif self.actions_type == "organic":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "organic_synthesis_actions_schema.json"
                 )
@@ -131,7 +131,7 @@ class ActionExtractorFromText(BaseModel):
         elif self.actions_type == "materials":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "material_synthesis_actions_schema.json"
                 )
@@ -141,7 +141,7 @@ class ActionExtractorFromText(BaseModel):
         elif self.actions_type == "sac":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "sac_synthesis_actions_schema.json"
                 )
@@ -151,7 +151,7 @@ class ActionExtractorFromText(BaseModel):
         elif self.actions_type == "elementary":
             if self.action_prompt_schema_path is None:
                 self.action_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "material_synthesis_actions_schema.json"
                 )
@@ -160,7 +160,7 @@ class ActionExtractorFromText(BaseModel):
             atributes = ["type", "name", "dropwise", "concentration", "amount"]
         if self.chemical_prompt_schema_path is None:
             self.chemical_prompt_schema_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/schemas"
                 / "chemicals_from_actions_schema.json"
             )
@@ -190,7 +190,7 @@ class ActionExtractorFromText(BaseModel):
             self._solution_chemical_prompt = PromptFormatter(**solution_chemical_prompt_dict)
             self._solution_chemical_prompt.model_post_init(self.chemical_prompt_template_path)
         self.transfer_prompt_schema_path = str(
-                    importlib_resources.files("zs4procext")
+                    importlib_resources.files("xlmexlab")
                     / "resources/schemas"
                     / "transfer_schema.json"
                 )
@@ -200,7 +200,7 @@ class ActionExtractorFromText(BaseModel):
         self._transfer_prompt.model_post_init(self.chemical_prompt_template_path)
         if self.llm_model_parameters_path is None:
             llm_param_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/model_parameters"
                 / "vllm_default_params.json"
             )
@@ -899,7 +899,7 @@ class ParagraphClassifier(BaseModel):
         self._prompt.model_post_init(self.prompt_template_path)
         if self.llm_model_parameters_path is None:
             llm_param_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/model_parameters"
                 / "vllm_default_params.json"
             )
@@ -1194,7 +1194,7 @@ class TableExtractor(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if self.vlm_model_parameters_path is None:
             vlm_param_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/model_parameters"
                 / "vllm_default_params.json"
                 )
@@ -1202,7 +1202,7 @@ class TableExtractor(BaseModel):
             vlm_param_path = self.vlm_model_parameters_path
         if self.prompt_schema_path is None:
             self.prompt_schema_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/schemas"
                 / "table_extraction_schema.json"
             )
@@ -1237,7 +1237,7 @@ class ImageExtractor(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if self.vlm_model_parameters_path is None:
             vlm_param_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/model_parameters"
                 / "vllm_default_params.json"
                 )
@@ -1245,7 +1245,7 @@ class ImageExtractor(BaseModel):
             vlm_param_path = self.vlm_model_parameters_path
         if self.prompt_schema_path is None:
             self.prompt_schema_path = str(
-                importlib_resources.files("zs4procext")
+                importlib_resources.files("xlmexlab")
                 / "resources/schemas"
                 / "image_extraction_schema.json" 
             )

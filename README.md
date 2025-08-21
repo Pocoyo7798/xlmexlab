@@ -1,16 +1,16 @@
-# **zs4procext**
+# **xlmexlab**
 [![PyPI - License](https://img.shields.io/pypi/l/langchain-core?style=flat-square)](https://opensource.org/licenses/MIT)
-[![GitHub star chart](https://img.shields.io/github/stars/Pocoyo7798/zs4procext?style=flat-square)](https://star-history.com/#Pocoyo7798/zs4procext)
-[![Open Issues](https://img.shields.io/github/issues-raw/Pocoyo7798/zs4procext?style=flat-square)](https://github.com/Pocoyo7798/zs4procext/issues)
+[![GitHub star chart](https://img.shields.io/github/stars/Pocoyo7798/xlmexlab?style=flat-square)](https://star-history.com/#Pocoyo7798/xlmexlab)
+[![Open Issues](https://img.shields.io/github/issues-raw/Pocoyo7798/xlmexlab?style=flat-square)](https://github.com/Pocoyo7798/xlmexlab/issues)
 
-zs4Procext is tool built to create and run LLM and VLM based extraction pipelines. It allows you to create loops of prompt - model response - parsing for a Q&A aproach for data extraction, accelariting multiple model comparison and model optimization.
+xlmexlab is tool built to create and run LLM and VLM based extraction pipelines. It allows you to create loops of prompt - model response - parsing for a Q&A aproach for data extraction, accelariting multiple model comparison and model optimization.
 ## **Getting Started**
 
 ```bash
-conda create --name zs4procext python=3.10
-conda activate zs4procext
-git clone git@github.com:Pocoyo7798/zs4procext.git
-cd zs4procext
+conda create --name xlmexlab python=3.10
+conda activate xlmexlab
+git clone git@github.com:Pocoyo7798/xlmexlab.git
+cd xlmexlab
 pip install -e .
 ```
 ## **LLM-based Extraction Pipelines**
@@ -22,7 +22,7 @@ In this repository you have multiple extraction pipelines available. Every pipel
 --prompt_template_path
 --prompt_schema_path
 ```
-Right now we support any hugginface model supported by the [vllm](https://docs.vllm.ai/en/v0.7.0/models/supported_models.html) python library. You can define the model you want to run by passing the model name on huggingface or the model folder on your computer on the ```--llm_model_name``` argument. The improve the performance of any pre-trained model you can rely on two things. First you can set the model parameters as temperature and top p passing a file containing the parameters such a [this one](src/zs4procext/resources/vllm_default_params.json) on the ```--llm_model_parameters_path``` argument. The performance of a model is also improved by passing the correct prompt template file. Multiple models already have the correct prompt template associated with their name. You can find the list [here](src/zs4procext/prompt.py) under the ```TEMPLATE_REGISTRY```. If you want to use custom template, download this file, change the content of the "template" key, based on what your need and then pass the new prompt template path on the ```--prompt_template_path``` argument.  Finnaly the prompt is defined on a schema file that can be passed on the ```--prompt_schema_path```. The prompt is divided in 6 parts:
+Right now we support any hugginface model supported by the [vllm](https://docs.vllm.ai/en/v0.7.0/models/supported_models.html) python library. You can define the model you want to run by passing the model name on huggingface or the model folder on your computer on the ```--llm_model_name``` argument. The improve the performance of any pre-trained model you can rely on two things. First you can set the model parameters as temperature and top p passing a file containing the parameters such a [this one](src/xlmexlab/resources/vllm_default_params.json) on the ```--llm_model_parameters_path``` argument. The performance of a model is also improved by passing the correct prompt template file. Multiple models already have the correct prompt template associated with their name. You can find the list [here](src/xlmexlab/prompt.py) under the ```TEMPLATE_REGISTRY```. If you want to use custom template, download this file, change the content of the "template" key, based on what your need and then pass the new prompt template path on the ```--prompt_template_path``` argument.  Finnaly the prompt is defined on a schema file that can be passed on the ```--prompt_schema_path```. The prompt is divided in 6 parts:
 
 * **Expertise**: Define the closest field related to your problem.
 * **Initialization**: Give general tips for the LLM answer.
@@ -35,19 +35,19 @@ Right now we support any hugginface model supported by the [vllm](https://docs.v
   * **Format**:Give an example of the format.
 * **Conclusion**: End your prompt giving the last details and take the opportunity to be kind.
 
-You can find multiple explamples of prompt schemas [here](src/zs4procext/resources). Now lets look at all the pipelines you have available now!
+You can find multiple explamples of prompt schemas [here](src/xlmexlab/resources). Now lets look at all the pipelines you have available now!
 ### Paragraph Classification
 Paragraph classification consists in identifying as True or False if the paragraph is in a certain class. For example you can use it to paragraphas cotnaining experimental procedures from other paragraphs. You can run it in the following way:
 ```bash
-zs4procext-paragraph_classifier --type "n2_physisorption" pathe_to_paragraphs.txt path_to_results.txt
+xlmexlab-paragraph_classifier --type "n2_physisorption" pathe_to_paragraphs.txt path_to_results.txt
 ```
-The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt file with True or False in each line. Right now there are 3 options for the ```--type``` argument implemented: 'n2_physisorption' to identify nitrogen physorption experimental procedures paragraphs, 'ftir_pyridine' to identity FTIR spectroscopy with adsorbed pyridine experimental procedures pragraphs and 'desilication_dealumination' to identify desilication and dealumination experiemetanl procedures paragraphs. You can run it for other by passing a new prompt on the ```--prompt_schema_path``` argument. You can find a example of a clssifying prompt [here](src/zs4procext/resources/classify_n2_physisorption_schema.json)
+The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt file with True or False in each line. Right now there are 3 options for the ```--type``` argument implemented: 'n2_physisorption' to identify nitrogen physorption experimental procedures paragraphs, 'ftir_pyridine' to identity FTIR spectroscopy with adsorbed pyridine experimental procedures pragraphs and 'desilication_dealumination' to identify desilication and dealumination experiemetanl procedures paragraphs. You can run it for other by passing a new prompt on the ```--prompt_schema_path``` argument. You can find a example of a clssifying prompt [here](src/xlmexlab/resources/classify_n2_physisorption_schema.json)
 ### Action Extraction
 Action Extraction consists in extracting a sequence of experimental actions that describe the procedure present in the paragraph. To apply run the following line:
 ```bash
-zs4procext-text2actions --actions_type materials  path_to_paragraphs.txt path_to_results.txt
+xlmexlab-text2actions --actions_type materials  path_to_paragraphs.txt path_to_results.txt
 ```
-The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/zs4procext/resources/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```None```, otherwise the post processing of that field will be aplied on the model response. If you want to run the pipeline on a subset of the existing action sets you just need to remove the action that you do not want from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/zs4procext/actions.py). To create a complete new action set you can contact us for further colaborations.
+The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/xlmexlab/resources/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```None```, otherwise the post processing of that field will be aplied on the model response. If you want to run the pipeline on a subset of the existing action sets you just need to remove the action that you do not want from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/xlmexlab/actions.py). To create a complete new action set you can contact us for further colaborations.
 
 ###Sample Finder
 The extraction pipeline is Work in Progress
@@ -55,9 +55,9 @@ The extraction pipeline is Work in Progress
 ###Table Extraction
 Table extraction consists in extracting data from samples or experiments present in tables. For example, for a table containing characterization data all the characterized properties will be extract for each sample, with the names standardized. You can run it using the following line.
 ```bash
-zs4procext-table2data --type catalyst_characterization  image_folder_path path_to_results.txt
+xlmexlab-table2data --type catalyst_characterization  image_folder_path path_to_results.txt
 ```
-The input should be a folder containing the table images, while the output is a .txt files containing a list of dictionaries containing the info associated to each samples/experiment. Right now, only one option for ```--type``` argument, that is used to extract data from tables containing characterization data from heteregeneous catalysts. To apply it to other kind of tables, you just need to pass a .json file containing the a new table schema on ```--table_schema_path``` argument. The schema should have a structure like [this](src/zs4procext/randomization.py), where for each type of data you want to extract you need to identify the possible keywords and units associated with it.
+The input should be a folder containing the table images, while the output is a .txt files containing a list of dictionaries containing the info associated to each samples/experiment. Right now, only one option for ```--type``` argument, that is used to extract data from tables containing characterization data from heteregeneous catalysts. To apply it to other kind of tables, you just need to pass a .json file containing the a new table schema on ```--table_schema_path``` argument. The schema should have a structure like [this](src/xlmexlab/randomization.py), where for each type of data you want to extract you need to identify the possible keywords and units associated with it.
 
 ###Graphic Extraction
 
@@ -69,23 +69,23 @@ In this section we present some extraction pipelines that use only a parser appl
 Molar Ratio Extraction consists in finding molar ratios in a paragraph, together with the equation associated if it is the case. You can run it like this:
 
 ```bash
-zs4procext-text2molar_ratios --valid_chemicals_path path_to_chemical_file.txt  path_to_paragraphs.txt path_to_results.txt
+xlmexlab-text2molar_ratios --valid_chemicals_path path_to_chemical_file.txt  path_to_paragraphs.txt path_to_results.txt
 ```
 The input is a .txt file containing all the paragraphs that you want to process line by line, while the uput file is also a .txt file containing a list od dcitionaries containing the molar ratio information. The ```--valid_chemicals_path``` argmuent takes a .txt file containing chemicals substances line by line (as they would apperar in a molar ratio). If you do not pass this argument, a pre defined one setted up for zeolites will be used.
 
 ## **Model and Settings Evaluation**
 
-There could be the case that you have a new model or a setting combination that could improve an existing. For this, we have an evaluator for each pipleine to speed up LLM screning and parameter optimization. You can already find multiple model paremeter files [here](src/zs4procext/resources/model_parameters). To do the evaluation you should run the extraction pipeline with the new settings on a reference dataset available [here](src/zs4procext/resources/datasets). Then the following evaluator are availble:
+There could be the case that you have a new model or a setting combination that could improve an existing. For this, we have an evaluator for each pipleine to speed up LLM screning and parameter optimization. You can already find multiple model paremeter files [here](src/xlmexlab/resources/model_parameters). To do the evaluation you should run the extraction pipeline with the new settings on a reference dataset available [here](src/xlmexlab/resources/datasets). Then the following evaluator are availble:
 ```bash
-zs4procext-eval_classifier path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
-zs4procext-eval_actions path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
-zs4procext-eval_graphs path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
+xlmexlab-eval_classifier path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
+xlmexlab-eval_actions path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
+xlmexlab-eval_graphs path_to_reference_file path_to_results_file path_to_evaluation_file.xlxs
 ```
-You can also find the reference files in [here](src/zs4procext/resources/datasets). Note that each evaluator as a set of paremeters pre defined. If you want to change them run the ```--help``` argument to verify what are the paraemeters available for you to tune.
+You can also find the reference files in [here](src/xlmexlab/resources/datasets). Note that each evaluator as a set of paremeters pre defined. If you want to change them run the ```--help``` argument to verify what are the paraemeters available for you to tune.
 
 ## **Creating New Pipelines**
 
-The zs4procext tool comes with a bunch of parsers based on regex for you to create your own extraction tool. In this part we will give you an example on how create one. Note all the files used in the example are [here](put_link_here.com) So, imagine that you want to create a tool to identify the alkaline treatment temperature used in the following procedure:
+The xlmexlab tool comes with a bunch of parsers based on regex for you to create your own extraction tool. In this part we will give you an example on how create one. Note all the files used in the example are [here](put_link_here.com) So, imagine that you want to create a tool to identify the alkaline treatment temperature used in the following procedure:
 
 ```diff
 "The alkaline treatment process was carried out using a 0.2 mol at 338 K. L-1 NaOH solution. In all experiments, 1 g of ZSM-5 zeolite and 100 mL of solution were used. The duration of the process was limited to 30 and 10 min for conventional electric and microwave (500 W) heating’s, respectively."
@@ -114,7 +114,7 @@ With this is loaded the prompt structure and the model parameters. With this set
 Now the alkaline tratment tempereture value is isolated from other temperatures, however other conditions are also present. To solve it we will use a parameters parser to identify only the temperature and convert it to degrees celsius:
 
 ```python
-from zs4procext.parser import ParametersParser
+from xlmexlab.parser import ParametersParser
 temperature_parser = ParametersParser(
             parser_params_path = "parser_parameters.json",
             convert_units=True,
@@ -139,9 +139,9 @@ Obviously different extraction pipelines will require different parser or a comb
 
 | Parser    | Description |
 | -------- | ------- |
-| ParametersParser  | Used to find values associated with basic units as temperetura, time, mass or volume. For using it you need to set a file like [this](src/zs4procext/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
+| ParametersParser  | Used to find values associated with basic units as temperetura, time, mass or volume. For using it you need to set a file like [this](src/xlmexlab/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
 | ListParametersParser | Used to find seuqence of number in text like "The treatment was performe at **10, 30 and 60** min"|
-| ComplexParametersParser  | Used to find values associated with complex units (that can be formed from basic one) such as concentration, heating speed, flow rates and stirring speed. For using it you need to set a file like [this](src/zs4procext/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
+| ComplexParametersParser  | Used to find values associated with complex units (that can be formed from basic one) such as concentration, heating speed, flow rates and stirring speed. For using it you need to set a file like [this](src/xlmexlab/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
 | ActionsParser  | Used to separate action and respective context from text, by passing the respective list of action on your action set |
 | KeywordSearching  | Used to find keywords defined in a python list |
 | SchemaParser  | Used to find and extract specfific schema patterns that you dfined on your prompt. For example "The chemical substance information is: **{'name': NaOH, 'quantity': 2 g}**" by specifying "{" and "}" as limiter and "name" and "quantity" as atributes you can separate the dicitoonary from the text a get the value in each key.|

@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict
-from zs4procext.parser import KeywordSearching
+from xlmexlab.parser import KeywordSearching
 
 import click
 import pandas as pd
@@ -8,7 +8,7 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font
 
-from zs4procext.evaluator_graphs import Evaluator_Graphs
+from xlmexlab.evaluator_graphs import Evaluator_Graphs
 import os
 
 

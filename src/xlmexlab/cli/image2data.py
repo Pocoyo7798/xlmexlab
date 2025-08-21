@@ -5,8 +5,8 @@ import json
 
 import click
 
-from zs4procext.extractor import ImageExtractor
-from zs4procext.prompt import TEMPLATE_REGISTRY
+from xlmexlab.extractor import ImageExtractor
+from xlmexlab.prompt import TEMPLATE_REGISTRY
 
 @click.command()
 @click.argument("image_folder", type=str)

@@ -1,10 +1,11 @@
 import json
 from typing import Any, Dict
-from zs4procext.parser import KeywordSearching
+from xlmexlab.parser import KeywordSearching
 
 import click
+import pandas as pd
 
-from zs4procext.evaluator import Evaluator
+from xlmexlab.evaluator import Evaluator
 
 
 @click.command()
@@ -12,22 +13,19 @@ from zs4procext.evaluator import Evaluator
 @click.argument("evaluated_dataset_path", type=str)
 @click.argument("output_file_path", type=str)
 
-def eval_molar_ratio(
+def eval_classifier(
     reference_dataset_path: str,
     evaluated_dataset_path: str,
     output_file_path: str,
 ) -> None:
     
     evaluator = Evaluator(reference_dataset_path=reference_dataset_path)
-    evaluator.model_post_init(None)
-    results: Dict[str, Any] = evaluator.evaluate_molar_ratio(evaluated_dataset_path)
-    results_json = json.dumps(results, indent=4)
-    with open(output_file_path, "w") as f:
-        f.write(results_json)
-
+    results: Dict[str, Any] = evaluator.evaluate_classifier(evaluated_dataset_path)
+    df = pd.DataFrame(results, index=[0])
+    df.to_excel(output_file_path, index=False,)
 
 def main():
-    eval_molar_ratio()
+    eval_classifier()
 
 
 if __name__ == "__main__":
