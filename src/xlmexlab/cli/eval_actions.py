@@ -1,11 +1,11 @@
 import json
 from typing import Any, Dict
-from zs4procext.parser import KeywordSearching
+from xlmexlab.parser import KeywordSearching
 
 import click
 import pandas as pd
 
-from zs4procext.evaluator import Evaluator
+from xlmexlab.evaluator import Evaluator
 
 
 @click.command()

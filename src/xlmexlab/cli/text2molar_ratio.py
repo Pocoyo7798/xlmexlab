@@ -4,7 +4,7 @@ import torch
 
 import click
 
-from zs4procext.extractor import MolarRatioExtractorFromText
+from xlmexlab.extractor import MolarRatioExtractorFromText
 
 @click.command()
 @click.argument("text_file_path", type=str)

@@ -5,8 +5,8 @@ import os
 
 import click
 
-from zs4procext.extractor import ActionExtractorFromText
-from zs4procext.prompt import TEMPLATE_REGISTRY
+from xlmexlab.extractor import ActionExtractorFromText
+from xlmexlab.prompt import TEMPLATE_REGISTRY
 
 
 @click.command()

@@ -2,7 +2,7 @@ import ast
 from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional, Set
 import re
-from zs4procext.parser import KeywordSearching
+from xlmexlab.parser import KeywordSearching
 
 import numpy as np
 from Levenshtein import ratio

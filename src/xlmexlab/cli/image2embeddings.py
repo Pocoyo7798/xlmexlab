@@ -5,7 +5,7 @@ from PIL import Image
 import click
 from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
-from zs4procext.embeddings import EmbeddingExtractor
+from xlmexlab.embeddings import EmbeddingExtractor
 
 
 @click.command()

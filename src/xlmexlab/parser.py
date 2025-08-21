@@ -52,7 +52,7 @@ class Parameters(BaseModel):
 
 class ParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )
@@ -313,7 +313,7 @@ class ParametersParser(BaseModel):
 
 class ListParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )
@@ -581,7 +581,7 @@ class ListParametersParser(BaseModel):
 
 class ComplexParametersParser(BaseModel):
     parser_params_path: str = str(
-        importlib_resources.files("zs4procext")
+        importlib_resources.files("xlmexlab")
         / "resources/parsing_parameters"
         / "synthesis_parsing_parameters.json"
     )
@@ -696,6 +696,9 @@ class ActionsParser(BaseModel):
         i = 0
         for action in actions[:-1]:
             if action == actions[i + 1] and len(content[i]) < 6:
+                del actions[i]
+                del content[i]
+            elif content[i].lower().replace(":", "").strip() == "n/a":
                 del actions[i]
                 del content[i]
             else:
@@ -891,6 +894,7 @@ class MolarRatioFinder(BaseModel):
     
     def substitute(self, text:str):
         molar_ratio_list = self.find_molar_ratio(text)
+        print(molar_ratio_list)
         if len(molar_ratio_list) == 0:
             return text
         for molar_ratio in molar_ratio_list:
@@ -1268,13 +1272,32 @@ superscript_map = {
 
 class ImageParser(BaseModel):
     data_dict: Dict[str, Dict[str, list]] = Field(default_factory=dict)
-    data_string: str = ""
+    data_string: str = "" 
 
     def __init__(self, data_string: Union[str, dict] = "", **data):
         super().__init__(data_string=data_string, **data)
         self._parse_input(data_string)
 
+    def _safe_json_loads(self, s: str):
+        s_stripped = s.strip()
+
+        # 1) Normalize keys that have extra/mixed quotes before the colon.
+        #    Examples handled: "'10 000':   or  "'key'":   or  "\"'key'\":  etc.
+        s = re.sub(r'([{\s,])\s*["\']+\s*([^"\':]+?)\s*["\']+\s*:', r'\1"\2":', s)
+
+        # 2) If it still looks like a Python-dict (single-quoted), convert to JSON double-quotes
+        if re.search(r"{\s*'", s) or re.search(r"'\w", s):
+            # convert 'some'  ->  "some"
+            s = re.sub(r"'\s*([^']*?)\s*'", r'"\1"', s)
+            # fallback: convert remaining single quotes to doubles (safe-guard)
+            s = re.sub(r'(?<!\\)\'', '"', s)
+
+        # note: I'm not doing a global control-character replacement here because
+        # replacing newlines/tabs outside JSON strings can break parsing.
+        return json.loads(s)
+
     def _parse_input(self, input_data: Union[str, dict]):
+        print("RAW INPUT DATA:", input_data)
         if isinstance(input_data, dict):
             input_data = self._convert_na_to_null(input_data)
             input_data = self._clean_keys(input_data)
@@ -1299,7 +1322,7 @@ class ImageParser(BaseModel):
                     flags=re.IGNORECASE
                 )
 
-                parsed_data = json.loads(input_data)
+                parsed_data = self._safe_json_loads(input_data)
 
                 outer_key = None
                 if isinstance(parsed_data, dict) and len(parsed_data) == 1:
@@ -1322,26 +1345,43 @@ class ImageParser(BaseModel):
         if not isinstance(data, dict):
             return data
 
-        inner_data = data
-        x_key = next((k for k, v in inner_data.items() if isinstance(v, list)), None)
+        # If outer_key is present and the inner dict has more than 3 keys → apply restructuring
+        if outer_key and isinstance(data, dict) and len(data) > 3:
+            # First key in the dict is assumed to be the x-axis
+            inner_keys = list(data.keys())
+            x_key = inner_keys[0]
+            x_values = data[x_key]
+
+            restructured = {}
+            for k in inner_keys[1:]:  # Skip x_key
+                v = data[k]
+                if isinstance(v, list) and len(v) == len(x_values):
+                    restructured[k] = {
+                        x_key: x_values,
+                        outer_key: v  # Use outer_key as y-axis label
+                    }
+
+            return restructured if restructured else data
+
+        # Otherwise: normal behavior
+        x_key = next((k for k, v in data.items() if isinstance(v, list)), None)
         if x_key is None:
             return data
 
-        x_values = inner_data[x_key]
-        
+        x_values = data[x_key]
         restructured = {}
-        for k, v in inner_data.items():
+        for k, v in data.items():
             if k == x_key:
                 continue
             if isinstance(v, list) and len(v) == len(x_values):
-                # always use the same y_key = outer_key if present
-                y_key = outer_key if outer_key else k
-                restructured[k] = {
+                series_name = outer_key if outer_key else k
+                restructured[series_name] = {
                     x_key: x_values,
-                    y_key: v
+                    k: v
                 }
-        
+
         return restructured if restructured else data
+
 
     def _convert_na_to_null(self, data: Dict) -> Dict:
         def convert_list(vals):

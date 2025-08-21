@@ -4,8 +4,8 @@ import os
 
 import click
 
-from zs4procext.extractor import TableExtractor
-from zs4procext.prompt import TEMPLATE_REGISTRY
+from xlmexlab.extractor import TableExtractor
+from xlmexlab.prompt import TEMPLATE_REGISTRY
 
 @click.command()
 @click.argument("image_folder", type=str)
