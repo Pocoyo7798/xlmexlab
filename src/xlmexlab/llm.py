@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, Optional
-from vllm import LLM, SamplingParams, RequestOutput
+from vllm import LLM, SamplingParams, RequestOutput, TextPrompt
 from vllm.sampling_params import BeamSearchParams
 
 from langchain_community.llms import VLLM
@@ -16,7 +16,7 @@ class ModelLLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
-    model: Any = None
+    model: LLM = None
     params: Any = None
 
     def vllm_load_model(self) -> None:
@@ -67,7 +67,7 @@ class ModelLLM(BaseModel):
         elif self.model_parameters["use_beam_search"] is False:
             output = self.model.generate(prompt, self.params)
         else:
-             output = self.model.beam_search(prompt, self.params)
+             output = self.model.beam_search([prompt], self.params)[0]
         return output.outputs[0].text
 
 class ModelVLM(BaseModel):
