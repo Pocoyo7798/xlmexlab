@@ -16,7 +16,7 @@ class ModelLLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
-    model: Any = None
+    model: LLM = None
     params: Any = None
 
     def vllm_load_model(self) -> None:
@@ -64,8 +64,10 @@ class ModelLLM(BaseModel):
             raise AttributeError("The LLM model is not loaded")
         if self.model_parameters == {}:
             output: list[RequestOutput] = self.model.generate(prompt,)
-        else:
+        elif self.model_parameters["use_beam_search"] is False:
             output = self.model.generate(prompt, self.params)
+        else:
+             output = self.model.beam_search(prompt, self.params)
         return output.outputs[0].text
 
 class ModelVLM(BaseModel):
