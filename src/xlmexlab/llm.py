@@ -63,15 +63,14 @@ class ModelLLM(BaseModel):
         if self.model is None:
             raise AttributeError("The LLM model is not loaded")
         if self.model_parameters == {}:
-            output: list[RequestOutput] = self.model.generate(prompt,)
+            output: list[RequestOutput] = self.model.generate(prompt)[0]
         elif self.model_parameters["use_beam_search"] is False:
-            output = self.model.generate(prompt, self.params)
+            output = self.model.generate(prompt, self.params)[0]
+            generated_text = output.outputs[0].text
         else:
-             prompt = TextPrompt(prompt=prompt)
-             output = self.model.beam_search([prompt], self.params)
-             for beam in output:
-                 print(beam)
-        return output.outputs[0].text
+             output = self.model.beam_search([{"prompt": prompt}], self.params)[0]
+             generated_text = output.sequences[0].text
+        return generated_text
 
 class ModelVLM(BaseModel):
     model_name: str
