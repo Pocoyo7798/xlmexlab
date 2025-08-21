@@ -16,8 +16,8 @@ class ModelLLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
-    model: Optional[LLM] = None
-    params: Optional[SamplingParams|BeamSearchParams] = None
+    model: Any = None
+    params: Any = None
 
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
