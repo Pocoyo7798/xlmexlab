@@ -23,9 +23,14 @@ class Evaluator(BaseModel):
             precision: float = 0
             recall: float = 0
             f_score: float = 0
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
+        if tp == 0:
+            precision = 0
+            recall = 0
+            f_score = 0
+        else:
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            f_score = 2 * precision * recall / (precision + recall)
         return {"precision": precision, "recall": recall, "f-score": f_score}
 
     def transform_chemical_name(self, name: str):
@@ -145,9 +150,12 @@ class Evaluator(BaseModel):
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
-        tp = 0
-        fp = 0
-        fn = 0
+        final_tp = 0
+        final_fp = 0
+        final_fn = 0
+        precision_list: List[str] = []
+        recall_list: List[str] = []
+        f_score_list: List[str] = []
         i = 0
         for action_list in test_dataset:
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
@@ -157,8 +165,9 @@ class Evaluator(BaseModel):
                 action_list
             )
             print(i)
-            fn = fn + len(ref_action_list)
-            fp = fp + len(action_list_transformed)
+            ref_actions_amount = len(ref_action_list)
+            fn = len(ref_action_list)
+            fp = len(action_list_transformed)
             found = 0
             for action in action_list_transformed:
                 test, index = self.exist_action_in_list(
@@ -167,14 +176,20 @@ class Evaluator(BaseModel):
                 if test is True:
                     found = found + 1
                     del ref_action_list[index]
-            tp = tp + found
+            tp = found
             fp = fp - found
             fn = fn - found
+            action_eval_dict = self.evaluate(tp, fp, fn)
+            final_tp = final_tp + tp
+            final_fp = final_fp + fp
+            final_fn = final_fn + fn
+            precision_list.extend([action_eval_dict["precision"]] * ref_actions_amount)
+            recall_list.extend([action_eval_dict["recall"]] * ref_actions_amount)
+            f_score_list.extend([action_eval_dict["f-score"]] * ref_actions_amount)
             i = i + 1
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
-        return {"precision": precision, "recall": recall, "f-score": f_score}
+        final_eval_dict = self.evaluate(final_tp, final_fp, final_fn)
+        return {"precision": final_eval_dict["precision"], "recall": final_eval_dict["recall"], "f-score": final_eval_dict["f-score"], "f-score_std": np.std(f_score_list)}
+                
 
     def evaluate_chemicals(
         self, test_dataset_path: str, threshold: float = 0.8
@@ -183,11 +198,13 @@ class Evaluator(BaseModel):
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
-        tp = 0
-        fp = 0
-        fn = 0
+        final_tp = 0
+        final_fp = 0
+        final_fn = 0
         i = 0
-        reference_chemicals: List[str] = []
+        precision_list: List[str] = []
+        recall_list: List[str] = []
+        f_score_list: List[str] = []
         for action_list in test_dataset:
             print(i)
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
@@ -207,7 +224,8 @@ class Evaluator(BaseModel):
                 elif ref_action["action"] == "Partition":
                     reference_chemicals.append(ref_action["content"]["material_1"])
                     reference_chemicals.append(ref_action["content"]["material_2"])
-            fn = fn + len(reference_chemicals)
+            ref_actions_amount = len(reference_chemicals)
+            fn = ref_actions_amount
             found = 0
             not_found = 0
             for action in action_list_transformed:
@@ -271,14 +289,19 @@ class Evaluator(BaseModel):
                     print(material)
                     print(reference_chemicals)
                     not_found = not_found + 1
-            tp = tp + found
-            fp = fp + not_found
+            tp = found
+            fp = not_found
             fn = fn - found
+            action_eval_dict = self.evaluate(tp, fp, fn)
+            final_tp = final_tp + tp
+            final_fp = final_fp + fp
+            final_fn = final_fn + fn
+            precision_list.extend([action_eval_dict["precision"]] * ref_actions_amount)
+            recall_list.extend([action_eval_dict["recall"]] * ref_actions_amount)
+            f_score_list.extend([action_eval_dict["f-score"]] * ref_actions_amount)
             i += 1
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
-        return {"precision": precision, "recall": recall, "f-score": f_score}
+        final_eval_dict = self.evaluate(final_tp, final_fp, final_fn)
+        return {"precision": final_eval_dict["precision"], "recall": final_eval_dict["recall"], "f-score": final_eval_dict["f-score"], "f-score_std": np.std(f_score_list)}
                 
 
     def evaluate_actions_order(self, test_dataset_path: str) -> Dict[str, Any]:
@@ -326,6 +349,7 @@ class Evaluator(BaseModel):
         return {
             "accuracy": np.average(accuracy_list),
             "%missing": actions_missing,
+            "accuracy_std":np.std(accuracy_list),
             "%%extra": actions_extra,
         }
     

@@ -32,6 +32,7 @@ def eval_actions(
     
     evaluator = Evaluator(reference_dataset_path=reference_dataset_path)
     #chemicals: Dict[str, Any] = evaluator.evaluate_chemicals(evaluated_dataset_path, threshold=chemical_similarity_threshold)
+    std_dict = {}
     metadata: Dict[str, Any] = {
         "action_threshold": action_similarity_threshold,
         "chemical_threshold": chemical_similarity_threshold,
@@ -42,7 +43,15 @@ def eval_actions(
         "chemical_recall": chemicals["recall"],
         "chemical_f-score": chemicals["f-score"]
     }
-    results: Dict[str, Any] = {**{"sequence": evaluator.evaluate_actions_order(evaluated_dataset_path)["accuracy"]}, **evaluator.evaluate_actions(evaluated_dataset_path, threshold=action_similarity_threshold), **chemicals_dict, **metadata}
+    actions = evaluator.evaluate_actions(evaluated_dataset_path, threshold=action_similarity_threshold)
+    actions_dict = {"actions_precision": actions["precision"],
+                    "actions_recall": actions["recall"],
+                    "actions_f-score": actions["f-score"]}
+    sequence_results = evaluator.evaluate_actions_order(evaluated_dataset_path)
+    std_dict = {"sequence_std": sequence_results["accuracy_std"], 
+                "actions_f-score_std": actions["f-score_std"],
+                "chemicals_f-score_std": chemicals["f-score_std"]}
+    results: Dict[str, Any] = {**{"sequence": sequence_results["accuracy"]}, **actions_dict, **chemicals_dict, **std_dict, **metadata}
     print(results)
     df = pd.DataFrame(results, index=[0])
     df.to_excel(output_file_path, index=False,)
