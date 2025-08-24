@@ -28,7 +28,8 @@ class ModelLLM(BaseModel):
                              trust_remote_code=self.model_parameters["trust_remote_code"],
                              quantization=self.model_parameters["quantization"],
                              max_seq_len_to_capture=self.model_parameters["max_model_len"],
-                             gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"]
+                             gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
+                             seed=self.model_parameters["seed"]
                             )
         else:
             self.model = LLM(model=self.model_name)
@@ -41,7 +42,6 @@ class ModelLLM(BaseModel):
                                             temperature=self.model_parameters["temperature"],
                                             top_p=self.model_parameters["top_p"],
                                             top_k=self.model_parameters["top_k"],
-                                            seed=self.model_parameters["seed"],
                                             n=self.model_parameters["n"],
                                             max_tokens=self.model_parameters["max_new_tokens"],
                                             stop=self.model_parameters["stop"],
