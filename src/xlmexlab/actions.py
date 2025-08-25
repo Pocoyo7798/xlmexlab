@@ -1535,6 +1535,7 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "reflux": SetTemperature,
     "phaseseparation": Separate,
     "purify": Wash,
+    "disperse": Add,
     "transfer": None,
     "degas": None,
     "invalidaction": None,
