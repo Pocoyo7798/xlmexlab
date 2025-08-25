@@ -176,8 +176,9 @@ class Evaluator(BaseModel):
                 if test is True:
                     found = found + 1
                     del ref_action_list[index]
-                if test is False and action["action"] == "Repeat":
-                    print(action)
+            for action_t in ref_action_list:
+                if action_t["action"] == "Repeat":
+                    print(action_t)
             tp = found
             fp = fp - found
             fn = fn - found

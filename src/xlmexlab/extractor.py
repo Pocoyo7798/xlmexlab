@@ -364,13 +364,15 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append(repeat_action)
                 else:
                     new_action_list.append(ActionExtractorFromText.delete_dict_keys(action, ["duration", "repetitions"]))
-            elif action_name == "Repeat" and len(new_action_list) > 1:
+            elif action_name == "Repeat" and len(new_action_list) > 0:
                 pre_action = new_action_list[-1]
                 amount = float(action["content"]["amount"])
-                if pre_action["action"] =="Repeat":
+                if pre_action["action"] == "Repeat":
                     new_amount = float(pre_action["content"]["amount"])
                     if amount < new_amount:
                         new_action_list[-1] = action
+                else:
+                    new_action_list.append(action)
             elif action_name == "SetTemperature":
                 if content["duration"] is not None:
                     new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
