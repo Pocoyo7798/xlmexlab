@@ -32,8 +32,9 @@ class ModelLLM(BaseModel):
                              quantization=self.model_parameters["quantization"],
                              max_model_len=self.model_parameters["max_model_len"],
                              gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
-                             seed=self.model_parameters["seed"],
+                             seed=self.model_parameters["seed"]
                             )
+            print("Ended Model Loading")
             if self.model_parameters["best_of"] is None:
                 self.model_parameters["best_of"] = self.model_parameters["n"]
             if self.model_parameters["use_beam_search"] is False:
