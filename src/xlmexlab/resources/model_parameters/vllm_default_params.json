@@ -19,7 +19,7 @@
     "top_k" : -1,
     "top_p" : 1,
     "trust_remote_code" : true,
-    "use_beam_search" : true, 
+    "use_beam_search" : false, 
     "gpu_memory_utilization" : 0.9,
     "seed" : 1906,
     "enforce-eager" : true,
