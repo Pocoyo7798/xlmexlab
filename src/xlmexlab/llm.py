@@ -75,8 +75,9 @@ class ModelLLM(BaseModel):
         else:
             print("beam_search")
             prompt = TextPrompt(prompt=prompt)
-            output = self.model.beam_search([prompt], self.params)[0]
-            generated_text = output.sequences[0].text
+            #output = self.model.beam_search([prompt], self.params)[0]
+            #generated_text = output.sequences[0].text
+            generated_text = ""
         return generated_text
 
 class ModelVLM(BaseModel):
