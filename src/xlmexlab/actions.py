@@ -1390,7 +1390,14 @@ BANNED_CHEMICALS_REGISTRY: List[str] = [
     "phase",
     "prepared",
     "neutralized",
-    "basified"
+    "basified",
+    "ionexchange",
+    "exchange",
+    "growth",
+    "gel",
+    "calcined",
+    "extracted",
+    "solvent"
 ]
 
 ACTION_REGISTRY: Dict[str, Any] = {
