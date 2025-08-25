@@ -23,4 +23,4 @@ jobs:
     - name: Check mypy
       run: python -m mypy .
     - name: Run pytests
-      run: python -m pytest -sv --cov=zs4procext tests
+      run: python -m pytest -sv --cov=xlmexlab tests
