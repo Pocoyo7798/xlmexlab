@@ -14,7 +14,7 @@
     "presence_penalty" : 0.0,
     "stop" : null,
     "tags" : null,
-    "temperature" : 0.5,
+    "temperature" : 0,
     "tensor_parallel_size" : 1,
     "top_k" : -1,
     "top_p" : 1,
