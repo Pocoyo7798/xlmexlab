@@ -27,7 +27,7 @@ class ModelLLM(BaseModel):
             self.model = LLM(model=self.model_name, 
                              tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
                              dtype=self.model_parameters["dtype"],
-                             enforce_eager=self.model_parameters["enforce_eager"],
+                             enforce_eager=self.model_parameters["enforce-eager"],
                              trust_remote_code=self.model_parameters["trust_remote_code"],
                              quantization=self.model_parameters["quantization"],
                              max_model_len=self.model_parameters["max_model_len"],
