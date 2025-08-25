@@ -1028,7 +1028,7 @@ class Wash(ActionsWithChemicalAndConditions):
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
-            number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+            number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
             if action.repetitions == 1:
                 if len(number_list) == 0:
                     pass
@@ -1049,7 +1049,7 @@ class Wash(ActionsWithChemicalAndConditions):
             for material in chemicals_info.chemical_list:
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
-                number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+                number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
                 if action.repetitions == 1:
                     if len(number_list) == 0:
                         pass
@@ -1256,7 +1256,7 @@ class Repeat(Actions):
     @classmethod
     def generate_action(cls, context: str):
         action: Repeat = cls(action_name="Repeat", action_context=context)
-        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
         if len(number_list) == 0:
             pass
         elif len(number_list) == 1:
@@ -1406,6 +1406,7 @@ ACTION_REGISTRY: Dict[str, Any] = {
     "heat": SetTemperature,
     "settemperature": SetTemperature,
     "stir": Stir,
+    "sonicate": Stir,
     "concentrate": Concentrate,
     "evaporate": Concentrate,
     "drysolution": DrySolution,
