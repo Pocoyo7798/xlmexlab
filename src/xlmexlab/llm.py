@@ -22,6 +22,8 @@ class ModelLLM(BaseModel):
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
         if self.model_parameters == {}:
+            self.model = LLM(model=self.model_name)
+        else:
             self.model = LLM(model=self.model_name, 
                              tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
                              dtype=self.model_parameters["dtype"],
@@ -31,8 +33,6 @@ class ModelLLM(BaseModel):
                              gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
                              seed=self.model_parameters["seed"]
                             )
-        else:
-            self.model = LLM(model=self.model_name)
             if self.model_parameters["best_of"] is None:
                 self.model_parameters["best_of"] = self.model_parameters["n"]
             if self.model_parameters["use_beam_search"] is False:
