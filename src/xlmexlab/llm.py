@@ -40,7 +40,7 @@ class ModelLLM(BaseModel):
                 self.model_parameters["best_of"] = self.model_parameters["n"]
             if self.model_parameters["use_beam_search"] is False:
                 print("sampling_params")
-                self.params = SamplingParams(best_of=self.model_parameters["best_of"], 
+                self.params = SamplingParams( 
                                             presence_penalty=self.model_parameters["presence_penalty"],
                                             frequency_penalty=self.model_parameters["frequency_penalty"],
                                             temperature=self.model_parameters["temperature"],
@@ -50,7 +50,7 @@ class ModelLLM(BaseModel):
                                             max_tokens=self.model_parameters["max_new_tokens"],
                                             stop=self.model_parameters["stop"],
                                             logprobs=self.model_parameters["logprobs"],
-                                            ignore_eos=self.model_parameters["ignore_eos"])
+                                            ignore_eos=self.model_parameters["ignore_eos"],)
             else:
                 print("beam_search_params")
                 self.params = BeamSearchParams(beam_width=self.model_parameters["n"],max_tokens=self.model_parameters["max_new_tokens"],ignore_eos=self.model_parameters["ignore_eos"])
