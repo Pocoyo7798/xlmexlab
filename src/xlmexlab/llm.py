@@ -30,9 +30,9 @@ class ModelLLM(BaseModel):
                              enforce_eager=self.model_parameters["enforce_eager"],
                              trust_remote_code=self.model_parameters["trust_remote_code"],
                              quantization=self.model_parameters["quantization"],
-                             max_seq_len_to_capture=self.model_parameters["max_model_len"],
+                             max_model_len=self.model_parameters["max_model_len"],
                              gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
-                             seed=self.model_parameters["seed"]
+                             seed=self.model_parameters["seed"],
                             )
             if self.model_parameters["best_of"] is None:
                 self.model_parameters["best_of"] = self.model_parameters["n"]
