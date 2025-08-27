@@ -567,25 +567,26 @@ class Evaluator(BaseModel):
         dictionary_keys = list(dictionary.keys())
         i: int = 0
         final_index: Optional[int] = None
+        test_value = 0
         for entry in dictionary_list:
-            test = False
             for key in dictionary_keys:
                 try:
                     dictionary_value: List[str] = dictionary[key]
                     entry_value = entry[key].copy()
                     comparison_results: Dict[str, Any] = self.evaluate_string_list(dictionary_value, entry_value, threshold= threshold)
-                    if comparison_results["true_positives"] > 1:
-                        test = True
-                        break
+                    test_value += comparison_results["true_positive"]
                 except KeyError:
                     pass
-            if test is True:
+            if test_value > 1:
                 final_index = i
                 break
             i += 1
         return final_index
     
     def evaluate_dict_list(self, test_dictionaries: List[Dict[str, Any]], ref_dictionaries: List[Dict[str, Any]], threshold: float = 0.8):
+        tp_sample: int = 0
+        fp_sample: int = 0
+        fn_sample: int = len(ref_dictionaries)
         tp_keys: int = 0
         fp_keys: int = 0
         fn_keys: int = 0
@@ -596,10 +597,18 @@ class Evaluator(BaseModel):
             dictionary_keys = list(dictionary.keys())
             index = self.verify_dict_in_list(dictionary, ref_dictionaries, threshold=threshold)
             if index is None:
+                print("###############")
+                print(dictionary)
+                print("Compared Dictionaries")
+                for ref_dicionary in ref_dictionaries:
+                    print(ref_dicionary)
+                fp_sample += 1
                 fp_keys += len(dictionary_keys)
                 for key in dictionary_keys:
                     fp_data += len(dictionary[key])
             else:
+                tp_sample += 1
+                fn_sample -= 1
                 ref_dictionary = ref_dictionaries[index]
                 ref_data_keys = list(ref_dictionary.keys())
                 evaluation_keys:  Dict[str, Any]  = self.evaluate_string_list(dictionary_keys, ref_data_keys, threshold=threshold)
@@ -616,13 +625,16 @@ class Evaluator(BaseModel):
             fn_keys += len(dict_keys)
             for key in dict_keys:
                 fn_data += len(dictionary[key])
-        return {"keys_true_positive": tp_keys, "keys_false_positive": fp_keys, "keys_false_negative": fn_keys, "data_true_positive": tp_data, "data_false_positive": fp_data, "data_false_negative": fn_data}
+        return {"sample_true_positive": tp_sample, "sample_false_positive": fp_sample, "sample_false_negative": max(fn_sample, 0), "keys_true_positive": tp_keys, "keys_false_positive": fp_keys, "keys_false_negative": fn_keys, "data_true_positive": tp_data, "data_false_positive": fp_data, "data_false_negative": fn_data}
     
     def evaluate_table_extractor(self, test_dataset_path: str, threshold: float = 0.8):
         with open(self.reference_dataset_path, "r") as f:
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
+        tp_sample: int = 0
+        fp_sample: int = 0
+        fn_sample: int = 0
         tp_keys: int = 0
         fp_keys: int = 0
         fn_keys: int = 0
@@ -630,12 +642,16 @@ class Evaluator(BaseModel):
         fp_data: int = 0
         fn_data: int = 0
         i : int = 0
+        print(i)
         for data in test_dataset:
             data_dict: Dict[str, Any] = ast.literal_eval(data)
             ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
             test_results: List[Dict[str, Any]] = data_dict["data"]
             ref_results: List[Dict[str, Any]] = ref_data_dict["data"]
             evaluation_results: Dict[str, int]= self.evaluate_dict_list(test_results, ref_results, threshold=threshold)
+            tp_sample += evaluation_results["sample_true_positive"]
+            fp_sample += evaluation_results["sample_false_positive"]
+            fn_sample += evaluation_results["sample_false_negative"]
             tp_keys += evaluation_results["keys_true_positive"]
             fp_keys += evaluation_results["keys_false_positive"]
             fn_keys += evaluation_results["keys_false_negative"]
@@ -643,7 +659,7 @@ class Evaluator(BaseModel):
             fp_data += evaluation_results["data_false_positive"]
             fn_data += evaluation_results["data_false_negative"]
             i += 1
-        return {"keys": self.evaluate(tp_keys, fp_keys, fn_keys), "data": self.evaluate(tp_data, fp_data, fn_data)}
+        return {"sample": self.evaluate(tp_sample, fp_sample, fn_sample), "keys": self.evaluate(tp_keys, fp_keys, fn_keys), "data": self.evaluate(tp_data, fp_data, fn_data)}
 
 CHEMICALS_REGISTRY = {"solution": "",
                       "powder": "",

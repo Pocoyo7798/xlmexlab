@@ -11,7 +11,7 @@
     "input_types": {},
     "output_parser": null,
     "partial_variables": {},
-    "template": "<bos><start_of_turn>user\n{expertise}{initialization}{definitions}{objective}{context}{answer_schema}{conclusion}<end_of_turn>\n<start_of_turn>model",
+    "template": "<bos><start_of_turn>user\n{expertise}{initialization}{definitions}{objective}{context}{answer_schema}{conclusion}<end_of_turn>",
     "template_format": "f-string",
     "validate_template": true,
     "_type": "prompt"
