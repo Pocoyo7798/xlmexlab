@@ -14,7 +14,7 @@ from xlmexlab.evaluator import Evaluator
 @click.argument("output_file_path", type=str)
 @click.option(
     "--threshold",
-    default=0.8,
+    default=0.7,
     help="Minimum threshold value to consider two string similar",
 )
 

@@ -1397,7 +1397,8 @@ BANNED_CHEMICALS_REGISTRY: List[str] = [
     "gel",
     "calcined",
     "extracted",
-    "solvent"
+    "solvent",
+    "initial"
 ]
 
 ACTION_REGISTRY: Dict[str, Any] = {

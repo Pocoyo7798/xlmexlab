@@ -574,7 +574,7 @@ class Evaluator(BaseModel):
                     dictionary_value: List[str] = dictionary[key]
                     entry_value = entry[key].copy()
                     comparison_results: Dict[str, Any] = self.evaluate_string_list(dictionary_value, entry_value, threshold= threshold)
-                    if comparison_results["false_negative"] == 0 and comparison_results["false_positive"] == 0:
+                    if comparison_results["true_positives"] > 1:
                         test = True
                         break
                 except KeyError:
@@ -600,7 +600,6 @@ class Evaluator(BaseModel):
                 for key in dictionary_keys:
                     fp_data += len(dictionary[key])
             else:
-                ref_dictionary = ref_dictionaries[index]
                 ref_dictionary = ref_dictionaries[index]
                 ref_data_keys = list(ref_dictionary.keys())
                 evaluation_keys:  Dict[str, Any]  = self.evaluate_string_list(dictionary_keys, ref_data_keys, threshold=threshold)
