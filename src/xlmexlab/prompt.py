@@ -361,6 +361,16 @@ TEMPLATE_REGISTRY: Dict[str, str] = {
         / "resources/template"
         / "ibm_granite3_default_template.json"
     ),
+    "granite-3.3-8b-instruct": str(
+        importlib_resources.files("xlmexlab")
+        / "resources/template"
+        / "ibm_granite3_default_template.json"
+    ),
+    "granite-4.0-tiny-preview": str(
+        importlib_resources.files("xlmexlab")
+        / "resources/template"
+        / "ibm_granite3_default_template.json"
+    ),
     "merlinite-7b": str(
         importlib_resources.files("xlmexlab")
         / "resources/template"
