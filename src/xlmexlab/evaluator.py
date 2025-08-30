@@ -642,10 +642,12 @@ class Evaluator(BaseModel):
         fp_data: int = 0
         fn_data: int = 0
         i : int = 0
-        print(i)
         for data in test_dataset:
+            print(i)
             data_dict: Dict[str, Any] = ast.literal_eval(data)
             ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
+            print(data_dict["table"])
+            print(ref_data_dict["table"])
             test_results: List[Dict[str, Any]] = data_dict["data"]
             ref_results: List[Dict[str, Any]] = ref_data_dict["data"]
             evaluation_results: Dict[str, int]= self.evaluate_dict_list(test_results, ref_results, threshold=threshold)
