@@ -48,10 +48,7 @@ def eval_actions(
                     "actions_recall": actions["recall"],
                     "actions_f-score": actions["f-score"]}
     sequence_results = evaluator.evaluate_actions_order(evaluated_dataset_path)
-    std_dict = {"sequence_std": sequence_results["accuracy_std"], 
-                "actions_f-score_std": actions["f-score_std"],
-                "chemicals_f-score_std": chemicals["f-score_std"]}
-    results: Dict[str, Any] = {**{"sequence": sequence_results["accuracy"]}, **actions_dict, **chemicals_dict, **std_dict, **metadata}
+    results: Dict[str, Any] = {**{"sequence": sequence_results["accuracy"]}, **actions_dict, **chemicals_dict, **metadata}
     print(results)
     df = pd.DataFrame(results, index=[0])
     df.to_excel(output_file_path, index=False,)
