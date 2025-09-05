@@ -375,7 +375,10 @@ class ActionExtractorFromText(BaseModel):
                     new_action_list.append(action)
             elif action_name == "SetTemperature":
                 if content["duration"] is not None:
-                    new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
+                    if new_temp is not None:
+                        new_action_list[-1] = {'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}}
+                    else:
+                        new_action_list.append({'action': 'Crystallization', 'content': {'temperature': new_temp, 'duration': content["duration"], 'pressure': content["pressure"], 'stirring_speed': content["stirring_speed"], 'microwave': content["microwave"]}})
             elif action_name in set(["Wash", "Separate"]):
                 add_new_solution = True
                 new_action_list.append(action)
