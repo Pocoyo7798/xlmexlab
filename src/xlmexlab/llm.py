@@ -1,16 +1,12 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from vllm import LLM, SamplingParams, RequestOutput, TextPrompt
 from vllm.sampling_params import BeamSearchParams
+from xlmexlab.randomization import seed_everything
 
 from langchain_community.llms import VLLM
-from pydantic import BaseModel, PrivateAttr
-from PIL import Image
-import numpy as np
-
-import importlib
-import torch
-import os
+from pydantic import BaseModel
+from PIL import Image, ImageFile
 
 class ModelLLM(BaseModel):
     model_name: str
@@ -24,6 +20,7 @@ class ModelLLM(BaseModel):
         if self.model_parameters == {}:
             self.model = LLM(model=self.model_name)
         else:
+            seed_everything(self.model_parameters["seed"])
             print("Start Model Loading")
             self.model = LLM(model=self.model_name, 
                              tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
@@ -60,25 +57,30 @@ class ModelLLM(BaseModel):
         """Load the model paramaters from a json file
 
         Args:
-            file_path: Path to the file containing the model paramaters
+            file_path: Path to the json file containing the model paramaters
         """
         with open(file_path, "r") as f:
             self.model_parameters = json.load(f)
 
     def run_single_prompt(self, prompt: str) -> str:
+        """Run a single prompt on the loaded model
+
+        Args:
+            prompt (str): prompt to the loaded model
+
+        Raises:
+            AttributeError: if no model is loaded
+
+        Returns:
+            str: a string containing the model response
+        """
         if self.model is None:
             raise AttributeError("The LLM model is not loaded")
         if self.model_parameters == {}:
             output: list[RequestOutput] = self.model.generate(prompt)[0]
         elif self.model_parameters["use_beam_search"] is False:
             output = self.model.generate(prompt, self.params)[0]
-            generated_text = output.outputs[0].text
-        else:
-            print("beam_search")
-            prompt = TextPrompt(prompt=prompt)
-            #output = self.model.beam_search([prompt], self.params)[0]
-            #generated_text = output.sequences[0].text
-            generated_text = ""
+            generated_text: str = output.outputs[0].text
         return generated_text
 
 class ModelVLM(BaseModel):
@@ -134,30 +136,49 @@ class ModelVLM(BaseModel):
         """Load the model paramaters from a json file
 
         Args:
-            file_path: Path to the file containing the model paramaters
+            file_path: Path to the json file containing the model paramaters
         """
         with open(file_path, "r") as f:
             self.model_parameters = json.load(f)
 
     def run_image_single_prompt(self, prompt: str, image_path: str) -> str:
-        pil_image = Image.open(image_path)
+        """Run a single prompt on the loaded vision language model
+
+        Args:
+            prompt (str): prompt to the loaded model
+            image_path (str): file path for the image
+
+        Returns:
+            str: a string containing the model response
+        """
+        pil_image: ImageFile = Image.open(image_path)
         new_prompt: Dict[str, Any] = [
             {
                 "prompt": prompt,
                 "multi_modal_data": {"image": pil_image},
             }
         ]
-        outputs = self.model.generate(new_prompt)
-        final_response = ""
+        outputs: list[RequestOutput] = self.model.generate(new_prompt)
+        final_response: str = ""
         for o in outputs:
             final_response += o[1][0][0].text
             break
         return final_response
 
     def run_image_single_prompt_rescale(self, prompt: str, image_path: str, scale: float = 1.0) -> str:
-        pil_image = Image.open(image_path)
+        """Run a single prompt on the loaded vision language model with the option to rescale the image
+
+        Args:
+            prompt (str): prompt to the loaded model
+            image_path (str): file path for the image
+            scale (float, optional): rescale factor to use. Defaults to 1.0.
+
+        Returns:
+            str: a string containing the model response
+        """
+        pil_image: ImageFile = Image.open(image_path)
         if scale < 1.0:
-            new_size = (int(pil_image.width * scale), int(pil_image.height * scale))
+            new_size: Tuple[int, int] = (int(pil_image.width * scale), int(pil_image.height * scale))
             pil_image = pil_image.resize(new_size, Image.BILINEAR)
 
         new_prompt: Dict[str, Any] = [
@@ -167,8 +188,8 @@ class ModelVLM(BaseModel):
             }
         ]
 
-        outputs = self.model.generate(prompts=new_prompt) 
-        final_response = ""
+        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt) 
+        final_response: str = ""
         for o in outputs:
             final_response += o[1][0][0].text
             break

@@ -3,9 +3,6 @@ from typing import Any, Dict, List, Optional
 import importlib_resources
 from langchain.prompts import BasePromptTemplate, load_prompt
 from pydantic import BaseModel, PrivateAttr
-from PIL import Image
-import base64
-from io import BytesIO
 
 
 class PromptFormatter(BaseModel):
@@ -93,14 +90,14 @@ class PromptFormatter(BaseModel):
                 / "resources/template"
                 / "organic_synthesis_actions_last_template.json"
             )
-            loaded_prompt = load_prompt(__context)
+            loaded_prompt: BasePromptTemplate = load_prompt(__context)
             self._loaded_prompt = loaded_prompt
         else:
             loaded_prompt = load_prompt(__context)
             self._loaded_prompt = loaded_prompt
-        definition_list = self.definitions_to_string()
+        definition_list: str = self.definitions_to_string()
         self._definition_list = definition_list
-        answer_schema = self.answer_schema_to_string()
+        answer_schema: str = self.answer_schema_to_string()
         self._answer_schema = answer_schema
         if self.expertise != "":
             self.expertise = self.expertise + "\n"
@@ -137,13 +134,6 @@ class PromptFormatter(BaseModel):
         )
         
         return formatted_prompt
-    
-    def prepare_image(self, image_path: str = ""):
-        pil_image = Image.open(image_path)
-        buffered = BytesIO()
-        pil_image.save(buffered, format="JPEG")  # You can change the format if needed
-        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        return img_str
 
 TEMPLATE_REGISTRY: Dict[str, str] = {
     "Llama-2-7b-chat-hf": str(
