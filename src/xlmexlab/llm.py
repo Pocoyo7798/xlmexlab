@@ -28,8 +28,7 @@ class ModelLLM(BaseModel):
                              trust_remote_code=self.model_parameters["trust_remote_code"],
                              quantization=self.model_parameters["quantization"],
                              max_model_len=self.model_parameters["max_model_len"],
-                             gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
-                             seed=self.model_parameters["seed"]
+                             gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"]
                             )
             print("Ended Model Loading")
             if self.model_parameters["best_of"] is None:
