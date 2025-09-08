@@ -2,6 +2,7 @@ import time
 from typing import List, Optional
 import torch
 import os
+from xlmexlab.randomization import seed_everything
 
 import click
 
@@ -84,6 +85,7 @@ def text2actions(
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
+    seed_everything(0)
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]

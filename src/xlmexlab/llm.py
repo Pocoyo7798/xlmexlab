@@ -20,7 +20,6 @@ class ModelLLM(BaseModel):
         if self.model_parameters == {}:
             self.model = LLM(model=self.model_name)
         else:
-            seed_everything(self.model_parameters["seed"])
             print("Start Model Loading")
             self.model = LLM(model=self.model_name, 
                              tensor_parallel_size=self.model_parameters["tensor_parallel_size"],
