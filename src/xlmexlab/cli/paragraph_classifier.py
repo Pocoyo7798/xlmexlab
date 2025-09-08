@@ -74,6 +74,12 @@ def paragraph_classifier(
         / "resources"
         / "classify_desilication_dealumination_schema.json"
     )
+    elif type == "steaming":
+        prompt_schema_path = str(
+        importlib_resources.files("xlmexlab")
+        / "resources"
+        / "classify_steaming.json.json"
+    )
     else:
         raise AttributeError("You need to pass a valid --type or a --prompt_schema_path")
     if prompt_template_path is None:
