@@ -85,8 +85,7 @@ def text2actions(
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
-    os.environ['VLLM_USE_V1'] = "0"
-    print(f"the env variable is {os.environ['VLLM_USE_V1']}")
+    os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = "0"
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]
