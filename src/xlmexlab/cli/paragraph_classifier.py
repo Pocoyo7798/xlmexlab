@@ -78,7 +78,7 @@ def paragraph_classifier(
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
         / "resources"
-        / "classify_steaming.json.json"
+        / "classify_steaming_schema.json"
     )
     else:
         raise AttributeError("You need to pass a valid --type or a --prompt_schema_path")
