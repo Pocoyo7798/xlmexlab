@@ -1046,7 +1046,7 @@ class Quench(ActionsWithChemicalAndConditions):
             )
         if len(ph_parser.find_keywords(context)) > 0:
             new_action: List[Dict[str, Any]] = PH.generate_action(
-                context, schemas, schema_parser, amount_parser, conditions_parser
+                context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser
             )
             return [action.generate_dict()] + new_action
         return [action.generate_dict()]
@@ -1733,12 +1733,14 @@ class Transfer(Actions):
             pass
         elif len(schemas) == 1:
             name: List[str] = schemas_parser.get_atribute_value(schemas[0], "type")
+            name.append("")
             banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(name[0].lower())
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
                 final_name = name[0]
             size: List[str]= schemas_parser.get_atribute_value(schemas[0], "volume")
+            size.append("")
             banned_keywords_size: List[str] = banned_transfer_parser.find_keywords(size[0].lower())
             if len(banned_keywords_size) > 0:
                 final_size = size[0]
@@ -1747,12 +1749,14 @@ class Transfer(Actions):
             action.recipient = f"{final_size}{final_name}".strip()
         else:
             name: str = schemas_parser.get_atribute_value(schemas[0], "type")
+            name.append("")
             banned_keywords_name = banned_transfer_parser.find_keywords(name[0].lower())
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
                 final_name = name[0]
             size = schemas_parser.get_atribute_value(schemas[0], "volume")
+            size.append("")
             banned_keywords_size: List[str] = banned_transfer_parser.find_keywords(size[0].lower())
             if len(banned_keywords_size) > 0:
                 final_size = size[0]
