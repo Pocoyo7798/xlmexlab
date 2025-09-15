@@ -53,32 +53,32 @@ def paragraph_classifier(
     elif type == "n2_physisorption":
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
-        / "resources"
+        / "resources/schemas"
         / "classify_n2_physisorption_schema.json"
     )
     elif type == "ftir_pyridine":
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
-        / "resources"
+        / "resources/schemas"
         / "classify_ftiv_pyridine_schema.json"
     )
     elif type == "multi_sample":
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
-        / "resources"
+        / "resources/schemas"
         / "classify_multi_sample_schema.json"
     )
     elif type == "desilication_dealumination":
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
-        / "resources"
+        / "resources/schemas"
         / "classify_desilication_dealumination_schema.json"
     )
     elif type == "steaming":
         prompt_schema_path = str(
         importlib_resources.files("xlmexlab")
-        / "resources"
-        / "classify_steaming.json.json"
+        / "resources/schemas"
+        / "classify_steaming_schema.json"
     )
     else:
         raise AttributeError("You need to pass a valid --type or a --prompt_schema_path")
