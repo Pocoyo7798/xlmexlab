@@ -625,7 +625,7 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(action)
             elif action_name == "Transfer":
                 action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
-                if action["content"]["recipient"] is not "":
+                if action["content"]["recipient"] != "":
                     new_action_list.append(action)
             elif action_name in set(["PhaseSeparation", "Degas"]):
                 pass
@@ -768,10 +768,6 @@ class ActionExtractorFromText(BaseModel):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
             elif action in set([Quench]):
-                if action is Add:
-                    chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
-                else:
-                    chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
                 chemical_response = self._llm_model.run_single_prompt(chemical_prompt).strip()
                 print(chemical_response)
                 schemas = self._schema_parser.parse_schema(chemical_response)
@@ -1120,7 +1116,7 @@ class MolarRatioExtractorFromText(BaseModel):
                 numbers_list = numbers_list[:-1]
             text = text.replace(numbers_list, "")
             numbers_list.replace("and", ",")
-            values_list = re.split("[,:\/]", numbers_list)
+            values_list = re.split("[,:\\/]", numbers_list)
             i = 0
             for key in keys:
                 ratio_dict[key] = values_list[i]
