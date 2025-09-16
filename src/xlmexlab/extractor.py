@@ -231,7 +231,7 @@ class ActionExtractorFromText(BaseModel):
             atmosphere=False,
             size=False
         )
-        transfer_atributes = ["type", "volume"]
+        transfer_atributes = ["recipient_name"]
         self._ph_parser = KeywordSearching(keywords_list=ph_keywords)
         self._complex_parser = ComplexParametersParser()
         self._evaporation_parser = KeywordSearching(keywords_list=EVAPORATION_REGISTRY)

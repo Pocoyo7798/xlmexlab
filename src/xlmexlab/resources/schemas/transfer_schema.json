@@ -5,7 +5,7 @@
   "definitions": {},
   "answer_schema": {
                     "Initialization" : "For you answer create a Json schema with the following format:",
-                    "Format" : "{'type': Recipient Name, 'volume': volume of the recipient}"
+                    "Format" : "{'recipient_name': Recipient Name}"
                   },
   "conclusion":  ""
 }
