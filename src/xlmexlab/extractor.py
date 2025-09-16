@@ -80,6 +80,7 @@ class ActionExtractorFromText(BaseModel):
     llm_model_parameters_path: Optional[str] = None
     elementar_actions: bool = False
     post_processing: bool = True
+    banned_chemicals: bool = True
     _action_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
     _chemical_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
     _wash_chemical_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
@@ -241,7 +242,10 @@ class ActionExtractorFromText(BaseModel):
         self._schema_parser = SchemaParser(atributes_list=atributes)
         self._transfer_banned_parser = KeywordSearching(keywords_list=BANNED_TRANSFER_REGISTRY)
         self._filtrate_parser = KeywordSearching(keywords_list=FILTRATE_REGISTRY)
-        self._banned_parser = KeywordSearching(keywords_list=BANNED_CHEMICALS_REGISTRY)
+        if self.banned_chemicals:
+            self._banned_parser = KeywordSearching(keywords_list=BANNED_CHEMICALS_REGISTRY)
+        else:
+            self._banned_parser = KeywordSearching(keywords_list=["ai&/(=)"])
         self._precipitate_parser = KeywordSearching(keywords_list=PRECIPITATE_REGISTRY)
         self._microwave_parser = KeywordSearching(keywords_list=MICROWAVE_REGISTRY)
         self._molar_ratio_parser = MolarRatioFinder(chemicals_list=MOLAR_RATIO_REGISTRY)
