@@ -827,10 +827,15 @@ class SchemaParser(BaseModel):
         results: List[Any] = regex.findall(text)
         i = 0
         for result in results:
-            while result[-1] in set([",", " "]):
-                result = result[:-1]
-                print(result)
-            results[i] = result
+            if result == "":
+                results[i] = result
+            else:
+                while result[-1] in set([",", " "]):
+                    result = result[:-1]
+                    if result == "":
+                        break
+                    print(result)
+                results[i] = result
             i += 1
         return results
 
