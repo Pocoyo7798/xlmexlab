@@ -768,6 +768,7 @@ class ActionExtractorFromText(BaseModel):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
             elif action in set([Quench]):
+                chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
                 chemical_response = self._llm_model.run_single_prompt(chemical_prompt).strip()
                 print(chemical_response)
                 schemas = self._schema_parser.parse_schema(chemical_response)
