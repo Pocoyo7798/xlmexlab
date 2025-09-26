@@ -208,6 +208,7 @@ class Evaluator(BaseModel):
         precision_list: List[str] = []
         recall_list: List[str] = []
         f_score_list: List[str] = []
+        amount_of_chemicals: int = 0
         for action_list in test_dataset:
             print(i)
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
@@ -238,21 +239,25 @@ class Evaluator(BaseModel):
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "NewSolution":
                     material = action["content"]["solution"]
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "DrySolution":
                     material = {'name': action["content"]["material"], 'quantity': []}
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "Partition":
                     material_1 = action["content"]["material_1"]
                     test, index = self.exist_chemical_in_list(
                         material_1, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 2
                     if test is None:
                         pass
                     elif test is True:
@@ -304,7 +309,7 @@ class Evaluator(BaseModel):
             f_score_list.extend([action_eval_dict["f-score"]] * ref_actions_amount)
             i += 1
         final_eval_dict = self.evaluate(final_tp, final_fp, final_fn)
-        return {"precision": final_eval_dict["precision"], "recall": final_eval_dict["recall"], "f-score": final_eval_dict["f-score"], "f-score_std": np.std(f_score_list)}
+        return {"precision": final_eval_dict["precision"], "recall": final_eval_dict["recall"], "f-score": final_eval_dict["f-score"], "chemicals_amount": amount_of_chemicals}
                 
 
     def evaluate_actions_order(self, test_dataset_path: str) -> Dict[str, Any]:
@@ -325,6 +330,7 @@ class Evaluator(BaseModel):
         actions_amount: int = 0
         actions_over_find: int = 0
         actions_lower_find: int = 0
+        amount_of_actions: int = 0
         for action_list in test_dataset:
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
                 reference_dataset[i]
@@ -336,6 +342,7 @@ class Evaluator(BaseModel):
             action_sequence: List[str] = [
                 action["action"] for action in action_list_transformed
             ]
+            amount_of_actions += len(action_sequence)
             ref_action_sequence2 = "".join(ref_action_sequence)
             action_sequence2 = "".join(action_sequence)
             accuracy_list.append(ratio(ref_action_sequence2, action_sequence2))
@@ -352,8 +359,8 @@ class Evaluator(BaseModel):
         return {
             "accuracy": np.average(accuracy_list),
             "%missing": actions_missing,
-            "accuracy_std":np.std(accuracy_list),
             "%%extra": actions_extra,
+            "action_amount":amount_of_actions,
         }
     
     def evaluate_chemicals_in_ratios(self, chemicals_list: List[str], molar_ratios_list: List[Dict[str, str]], threshold: float=0.9) -> Dict[str, int]:

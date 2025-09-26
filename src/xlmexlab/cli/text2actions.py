@@ -21,7 +21,12 @@ from xlmexlab.prompt import TEMPLATE_REGISTRY
 @click.option(
     "--post_processing",
     default=True,
-    help="True if you want to process the LLM output, False otherwise",
+    help="True if you want to post process the LLM output, False otherwise",
+)
+@click.option(
+    "--banned_chemicals",
+    default=True,
+    help="True if you want to eliminate banned chemicals, False otherwise",
 )
 @click.option(
     "--prompt_template_path",
@@ -73,6 +78,7 @@ def text2actions(
     output_file_path: str,
     actions_type: str,
     post_processing: bool,
+    banned_chemicals: bool,
     prompt_template_path: Optional[str],
     chemical_prompt_schema_path: Optional[str],
     prompt_schema_path: Optional[str],
@@ -95,6 +101,7 @@ def text2actions(
     extractor: ActionExtractorFromText = ActionExtractorFromText(
         actions_type=actions_type,
         post_processing=post_processing,
+        banned_chemicals=banned_chemicals,
         action_prompt_template_path=prompt_template_path,
         chemical_prompt_template_path=prompt_template_path,
         action_prompt_schema_path=prompt_schema_path,

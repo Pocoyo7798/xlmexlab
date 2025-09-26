@@ -1732,37 +1732,39 @@ class Transfer(Actions):
         if len(schemas) == 0:
             pass
         elif len(schemas) == 1:
-            name: List[str] = schemas_parser.get_atribute_value(schemas[0], "type")
+            name: List[str] = schemas_parser.get_atribute_value(schemas[0], "recipient_name")
             name.append("")
             banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(name[0].lower())
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
                 final_name = name[0]
-            size: List[str]= schemas_parser.get_atribute_value(schemas[0], "volume")
+            """size: List[str]= schemas_parser.get_atribute_value(schemas[0], "volume")
             size.append("")
             banned_keywords_size: List[str] = banned_transfer_parser.find_keywords(size[0].lower())
             if len(banned_keywords_size) > 0:
                 final_size = size[0]
             else:
                 final_size = size[0] + " "
-            action.recipient = f"{final_size}{final_name}".strip()
+            """
+            action.recipient = final_name.strip()
         else:
-            name: str = schemas_parser.get_atribute_value(schemas[0], "type")
+            name: List[str] = schemas_parser.get_atribute_value(schemas[0], "recipient_name")
             name.append("")
-            banned_keywords_name = banned_transfer_parser.find_keywords(name[0].lower())
+            banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(name[0].lower())
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
                 final_name = name[0]
-            size = schemas_parser.get_atribute_value(schemas[0], "volume")
+            """size = schemas_parser.get_atribute_value(schemas[0], "volume")
             size.append("")
             banned_keywords_size: List[str] = banned_transfer_parser.find_keywords(size[0].lower())
             if len(banned_keywords_size) > 0:
                 final_size = size[0]
             else:
                 final_size = size[0] + " "
-            action.recipient = f"{final_size}{final_name}".strip()
+            """
+            action.recipient = final_name.strip()
             print(
                 "Warning: More than one recipient was found, only the first one was considered"
                 )

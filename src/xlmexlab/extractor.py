@@ -83,6 +83,7 @@ class ActionExtractorFromText(BaseModel):
     llm_model_parameters_path: Optional[str] = None
     elementar_actions: bool = False
     post_processing: bool = True
+    banned_chemicals: bool = True
     _action_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
     _chemical_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
     _wash_chemical_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
@@ -232,7 +233,7 @@ class ActionExtractorFromText(BaseModel):
             atmosphere=False,
             size=False
         )
-        transfer_atributes = ["type", "volume"]
+        transfer_atributes = ["recipient_name"]
         self._ph_parser = KeywordSearching(keywords_list=ph_keywords)
         self._complex_parser = ComplexParametersParser()
         self._evaporation_parser = KeywordSearching(keywords_list=EVAPORATION_REGISTRY)
@@ -244,7 +245,10 @@ class ActionExtractorFromText(BaseModel):
         self._schema_parser = SchemaParser(atributes_list=atributes)
         self._transfer_banned_parser = KeywordSearching(keywords_list=BANNED_TRANSFER_REGISTRY)
         self._filtrate_parser = KeywordSearching(keywords_list=FILTRATE_REGISTRY)
-        self._banned_parser = KeywordSearching(keywords_list=BANNED_CHEMICALS_REGISTRY)
+        if self.banned_chemicals:
+            self._banned_parser = KeywordSearching(keywords_list=BANNED_CHEMICALS_REGISTRY)
+        else:
+            self._banned_parser = KeywordSearching(keywords_list=["ai&/(=)"])
         self._precipitate_parser = KeywordSearching(keywords_list=PRECIPITATE_REGISTRY)
         self._microwave_parser = KeywordSearching(keywords_list=MICROWAVE_REGISTRY)
         self._molar_ratio_parser = MolarRatioFinder(chemicals_list=MOLAR_RATIO_REGISTRY)
@@ -623,7 +627,7 @@ class ActionExtractorFromText(BaseModel):
                 new_action_list.append(action)
             elif action_name == "Transfer":
                 action["content"]["recipient"] = action["content"]["recipient"].replace("N/A", "")
-                if action["content"]["recipient"] is not "":
+                if action["content"]["recipient"] != "":
                     new_action_list.append(action)
             elif action_name in set(["PhaseSeparation", "Degas"]):
                 pass
@@ -766,10 +770,7 @@ class ActionExtractorFromText(BaseModel):
                 new_action = action.generate_action(context, self._condition_parser, self._complex_parser)
                 action_list.extend(new_action)
             elif action in set([Quench]):
-                if action is Add:
-                    chemical_prompt = self._add_chemical_prompt.format_prompt(f"'{context}'")
-                else:
-                    chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
+                chemical_prompt = self._chemical_prompt.format_prompt(f"'{context}'")
                 chemical_response = self._llm_model.run_single_prompt(chemical_prompt).strip()
                 print(chemical_response)
                 schemas = self._schema_parser.parse_schema(chemical_response)
@@ -1076,7 +1077,7 @@ class MolarRatioExtractorFromText(BaseModel):
                 numbers_list = numbers_list[:-1]
             text = text.replace(numbers_list, "")
             numbers_list.replace("and", ",")
-            values_list = re.split("[,:\/]", numbers_list)
+            values_list = re.split("[,:\\/]", numbers_list)
             i = 0
             for key in keys:
                 ratio_dict[key] = values_list[i]
