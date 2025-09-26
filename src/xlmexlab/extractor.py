@@ -1151,6 +1151,7 @@ class MolarRatioExtractorFromText(BaseModel):
 class SteamingDataExtractor(BaseModel):
     llm_model_name: Optional[str] = None
     llm_model_parameters_path: Optional[str] = None
+    prompt_template_path: Optional[str] = None
     data_prompt_template_path: Optional[str] = None
     pressure_prompt_template_path: Optional[str] = None
     flow_prompt_template_path: Optional[str] = None
@@ -1188,6 +1189,10 @@ class SteamingDataExtractor(BaseModel):
                 / "resources/parsing_parameters"
                 / "steaming_parsing_parameters.json"
                 )
+        with open(self.data_prompt_schema_path, "r") as f:
+                data_prompt_dict = json.load(f)
+        self._data_prompt = PromptFormatter(**data_prompt_dict)
+        self._data_prompt.model_post_init(self.prompt_template_path)
         self._condition_parser = ParametersParser(parser_params_path=parser_params_path, convert_units=False, atmosphere=False)
         self._complex_parser = ComplexParametersParser(parser_params_path=parser_params_path)
         self._llm_model.load_model_parameters()
