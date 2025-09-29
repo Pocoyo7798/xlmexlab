@@ -18,6 +18,7 @@ from xlmexlab.actions import (
     BANNED_CHEMICALS_REGISTRY,
     BANNED_TRANSFER_REGISTRY,
     CENTRIFUGATION_REGISTRY,
+    CUSTOM_ACTION_REGISTRY,
     ELEMENTARY_ACTION_REGISTRY,
     EVAPORATION_REGISTRY,
     FILTER_REGISTRY,
@@ -148,6 +149,12 @@ class ActionExtractorFromText(BaseModel):
                     / "sac_synthesis_actions_schema.json"
                 )
             self._action_dict = SAC_ACTION_REGISTRY
+            ph_keywords = PH_REGISTRY
+            atributes = ["type", "name", "dropwise", "concentration", "amount"]
+        elif self.actions_type == "custom":
+            if self.action_prompt_schema_path is None:
+                raise AttributeError("You need to give a schema file for custom actions")
+            self._action_dict = CUSTOM_ACTION_REGISTRY
             ph_keywords = PH_REGISTRY
             atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "elementary":
