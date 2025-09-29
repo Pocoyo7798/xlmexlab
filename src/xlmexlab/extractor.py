@@ -1164,7 +1164,7 @@ class SteamingDataExtractor(BaseModel):
     flow_prompt_template_path: Optional[str] = None
     data_prompt_schema_path: Optional[str] = None
     pressure_prompt_schema_path: Optional[str] = None
-    flow_prompt_template_path: Optional[str] = None
+    flow_prompt_schema_path: Optional[str] = None
     _llm_model: Optional[ModelLLM] = PrivateAttr(default=None)
     _data_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
     _pressure_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
