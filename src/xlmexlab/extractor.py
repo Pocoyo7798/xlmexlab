@@ -53,6 +53,8 @@ from xlmexlab.llm import ModelLLM, ModelVLM
 from xlmexlab.parser import (
     ActionsParser,
     ComplexParametersParser,
+    ComplexConditions,
+    Conditions,
     EquationFinder,
     ImageParser,
     KeywordSearching,
@@ -119,7 +121,7 @@ class ActionExtractorFromText(BaseModel):
                     / "organic_synthesis_actions_schema.json"
                 )
             self._action_dict = PISTACHIO_ACTION_REGISTRY
-            ph_keywords: List[str] = ["&^%#@&#@(*)"]
+            ph_keywords: List[str] = PH_REGISTRY
             atributes = ["type", "name", "dropwise", "concentration", "amount"]
         elif self.actions_type == "organic":
             if self.action_prompt_schema_path is None:
@@ -938,14 +940,7 @@ class ParagraphClassifier(BaseModel):
         return result
 
 class SamplesExtractorFromText(BaseModel):
-    prompt_template_path: Optional[str] = None
-    prompt_schema_path: Optional[str] = None
-    llm_model_name: Optional[str] = None
-    llm_model_parameters_path: Optional[str] = None
-    _schema_parser: Optional[SchemaParser] = PrivateAttr(default=None)
     _list_parser: Optional[ListParametersParser] = PrivateAttr(default=None)
-    _prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
-    _llm_model: Optional[ModelLLM] = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         atributes = ["name", "preparation", "yield"]
@@ -1013,7 +1008,6 @@ class SamplesExtractorFromText(BaseModel):
         print(new_list_of_values)
         print(new_list_of_text)
         new_paragraphs_list += self._list_parser.generate_text_by_value(new_list_of_text, new_list_of_values, paragraph)
-        #print(new_paragraphs_list)
         samples_list: List[Dict[str, Any]] = []
         sample_index = 1
         for procedure in new_paragraphs_list:
@@ -1023,40 +1017,6 @@ class SamplesExtractorFromText(BaseModel):
             samples_list.append(sample_dict)
             sample_index += 1
         return samples_list
-
-
-
-        """prompt: str = self._prompt.format_prompt(paragraph)
-        response: str = self._llm_model.run_single_prompt(prompt)
-        print(response)
-        schemas: List[str] = self._schema_parser.parse_schema(response)
-        samples_list: List[Any] = []
-        i = 1
-        for schema in schemas:
-            sample_dict = {}
-            name_list: List[str] = self._schema_parser.get_atribute_value(schema, "name")
-            procedure_list: List[str] = self._schema_parser.get_atribute_value(schema, "preparation")
-            yield_list: List[str] = self._schema_parser.get_atribute_value(schema, "yield")
-            if len(name_list) > 0:
-                sample_dict["sample"] = name_list[0]
-            else:
-                sample_dict["sample"] = f"sample {i}"
-                i += 1
-            if len(procedure_list) > 0:
-                if procedure_list[0].strip().lower() == "n/a":
-                    sample_dict["procedure"] = None
-                else:
-                    sample_dict["procedure"] = procedure_list[0]
-            else:
-                sample_dict["procedure"] = None
-            if len(yield_list) > 0:
-                if yield_list[0].strip().lower() == "n/a":
-                    sample_dict["yield"] = None
-                else:
-                    sample_dict["yield"] = yield_list[0]
-            else:
-                sample_dict["yield"] = None
-            samples_list.append(sample_dict)"""
 
 class MolarRatioExtractorFromText(BaseModel):
     chemicals_path: Optional[str] = None
@@ -1194,6 +1154,82 @@ class MolarRatioExtractorFromText(BaseModel):
             if len(new_ratio_dict.keys()) > 2:
                 molar_ratios_result.append(new_ratio_dict)
         return {"molar_ratios": molar_ratios_result, "equations": equations, "letters": conversion_dict}
+
+class SteamingDataExtractor(BaseModel):
+    llm_model_name: Optional[str] = None
+    llm_model_parameters_path: Optional[str] = None
+    prompt_template_path: Optional[str] = None
+    data_prompt_template_path: Optional[str] = None
+    pressure_prompt_template_path: Optional[str] = None
+    flow_prompt_template_path: Optional[str] = None
+    data_prompt_schema_path: Optional[str] = None
+    pressure_prompt_schema_path: Optional[str] = None
+    flow_prompt_template_path: Optional[str] = None
+    _llm_model: Optional[ModelLLM] = PrivateAttr(default=None)
+    _data_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
+    _pressure_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
+    _flow_prompt: Optional[PromptFormatter] = PrivateAttr(default=None)
+    _condition_parser: Optional[ParametersParser] = PrivateAttr(default=None)
+    _complex_parser: Optional[ParametersParser] = PrivateAttr(default=None)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.data_prompt_schema_path is None:
+            self.data_prompt_schema_path = str(
+                importlib_resources.files("xlmexlab")
+                / "resources/schemas"
+                / "get_steaming_data_schema.json"
+                )
+        elif self.pressure_prompt_schema_path is None:
+            self.pressure_prompt_schema_path = str(
+                importlib_resources.files("xlmexlab")
+                / "resources/schemas"
+                / "get_steaming_pressure_schema.json"
+                )
+        elif self.flow_prompt_schema_path is None:
+            self.flow_prompt_schema_path = str(
+                importlib_resources.files("xlmexlab")
+                / "resources/schemas"
+                / "get_steaming_flow_schema.json"
+                )
+        parser_params_path =  self.flow_prompt_schema_path = str(
+                importlib_resources.files("xlmexlab")
+                / "resources/parsing_parameters"
+                / "steaming_parsing_parameters.json"
+                )
+        with open(self.data_prompt_schema_path, "r") as f:
+                data_prompt_dict = json.load(f)
+        self._data_prompt = PromptFormatter(**data_prompt_dict)
+        self._data_prompt.model_post_init(self.prompt_template_path)
+        self._condition_parser = ParametersParser(parser_params_path=parser_params_path, convert_units=False, atmosphere=False)
+        self._complex_parser = ComplexParametersParser(parser_params_path=parser_params_path)
+        self._llm_model.load_model_parameters()
+        self._llm_model.vllm_load_model()
+
+    def extract(self, text: str):
+        data_prompt: str = self._data_prompt.format_prompt(f"'{text}'")
+        data_response: str = self._llm_model.run_single_prompt(data_prompt).strip()
+        print(data_response)
+        result_dict: Dict[str, Any] = {}
+        conditions: Conditions = self._condition_parser.get_parameters(
+            data_response
+        )
+        complex_conditions: ComplexConditions = self._complex_parser.get_parameters(
+            data_response
+        )
+        for field in Conditions.model_fields.keys():
+            value_list = getattr(conditions, field)
+            if len(value_list) == 0:
+                result_dict[field] = None
+            else:
+                result_dict[field] = value_list[0]
+        for complex_field in ComplexConditions.model_fields.keys():
+            complex_value_list = getattr(complex_conditions, complex_field)
+            if len(complex_value_list) == 0:
+                result_dict[complex_field] = None
+            else:
+                result_dict[complex_field] = complex_value_list[0]
+        return result_dict
+    
 
 class TableExtractor(BaseModel):
     table_type: str = "All"
