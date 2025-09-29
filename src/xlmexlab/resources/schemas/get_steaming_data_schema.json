@@ -1,9 +1,9 @@
 {
   "expertise": "You are an expert in material preparation.",
-  "initialization": "Answer the questions as truthfully as possible. Answer No if you are unsure. Be objective in your response.",
+  "initialization": "Answer the questions as truthfully as possible. Answer No if you are unsure. Avoid giving explanations about your answer.",
   "objective":"Analyse the following paragraph:",
   "definitions": {"Initialization" : "To answer the question consider the following description of steaming",
               "Steaming" : "Thermochemical treatment with steam at high temperature to remove aluminum and create mesopores"},
   "answer_schema": {},
-  "conclusion":  "What are the conditions of the steaming treatment? Identify the temperature, pressure, time and flow rate used whenever possible"
+  "conclusion":  "What are the conditions of the steaming treatment? Identify the temperature, pressure, time and flow rate used whenever possible. Give all numerical data as numbers instead of words."
 }
