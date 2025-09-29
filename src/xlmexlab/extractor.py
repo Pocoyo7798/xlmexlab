@@ -1206,7 +1206,7 @@ class SteamingDataExtractor(BaseModel):
             self._llm_model = ModelLLM(model_name="microsoft/Phi-3-medium-4k-instruct")
         else:
             self._llm_model = ModelLLM(model_name=self.llm_model_name)
-        self._llm_model.load_model_parameters()
+        self._llm_model.load_model_parameters(self.llm_model_parameters_path)
         self._llm_model.vllm_load_model()
 
     def extract(self, text: str):
