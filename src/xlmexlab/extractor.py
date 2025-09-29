@@ -1222,10 +1222,16 @@ class SteamingDataExtractor(BaseModel):
         )
         for field in Conditions.model_fields.keys():
             value_list = getattr(conditions, field)
-            if len(value_list) == 0:
-                result_dict[field] = None
+            if field == "amount":
+                if value_list == {}:
+                    result_dict[field] = None
+                else:
+                    result_dict[field] = value_list["value"]
             else:
-                result_dict[field] = value_list[0]
+                if len(value_list) == 0:
+                    result_dict[field] = None
+                else:
+                    result_dict[field] = value_list[0]
         for complex_field in ComplexConditions.model_fields.keys():
             complex_value_list = getattr(complex_conditions, complex_field)
             if len(complex_value_list) == 0:
