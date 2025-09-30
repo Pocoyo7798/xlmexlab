@@ -54,15 +54,15 @@ def steaming_extraction(
     count = 1
     if os.path.isfile(output_file_path):
         os.remove(output_file_path)
-    results = []
     for text in text_lines:
         print(f"text processed: {count}/{size}")
         sample_list: List[Dict[str, Any]] = sample_extractor.retrieve_samples_from_text(text)
+        results = []
         for sample in sample_list:
             steaming_data: Dict[str, Any] = steaming_extractor.extract(sample["procedure"])
             results.append(steaming_data)
-        with open(output_file_path, "a") as f:
-            f.write(str(results) + "\n")
+            with open(output_file_path, "a") as f:
+                f.write(str(results) + "\n")
         count = count + 1
     print(f"{(time.time() - start_time) / 60} minutes")
 
