@@ -1226,7 +1226,10 @@ class SteamingDataExtractor(BaseModel):
                 if value_list == {}:
                     result_dict[field] = None
                 else:
-                    result_dict[field] = value_list["value"]
+                    if len(value_list["value"]) == 0:
+                        result_dict[field] = None
+                    else:
+                        result_dict[field] = value_list["value"][0]
             elif field == "pressure":
                 if len(value_list) > 1:
                     unit = value_list[0].split(" ")[-1]
