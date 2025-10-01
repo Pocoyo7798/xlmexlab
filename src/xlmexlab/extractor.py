@@ -1227,6 +1227,32 @@ class SteamingDataExtractor(BaseModel):
                     result_dict[field] = None
                 else:
                     result_dict[field] = value_list["value"]
+            elif field == "pressure":
+                if len(value_list) > 1:
+                    unit = value_list[0].split(" ")[-1]
+                    max_value = max(int(re.findall(r"[\d.]+", x)) for x in value_list)
+                    min_value = min(int(re.findall(r"[\d.]+", x)) for x in value_list)
+                    result_dict["pressure"] = f"{min_value} {unit}"
+                    result_dict["total_pressure"] = f"{max_value} {unit}"
+                elif len(value_list) == 1:
+                    result_dict["pressure"] = value_list[0]
+                    result_dict["total_pressure"] = "101.3 kpa"
+                else:
+                    result_dict["pressure"] = None
+                    result_dict["total_pressure"] = "101.3 kpa"
+            elif field == "temperature":
+                if len(value_list) > 1:
+                    unit = value_list[0].split(" ")[-1]
+                    max_value = max(int(re.findall(r"[\d.]+", x)) for x in value_list)
+                    min_value = min(int(re.findall(r"[\d.]+", x)) for x in value_list)
+                    result_dict["temperature"] = f"{max_value} {unit}"
+                    result_dict["saturation_temperature_C"] = f"{min_value} {unit}"
+                elif len(value_list) == 1:
+                    result_dict["temperature"] = value_list[0]
+                    result_dict["saturation_temperature_C"] = None
+                else:
+                    result_dict["temperature"] = None
+                    result_dict["saturation_temperature_C"] = None
             else:
                 if len(value_list) == 0:
                     result_dict[field] = None
