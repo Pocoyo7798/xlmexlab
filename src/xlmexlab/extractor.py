@@ -1246,13 +1246,13 @@ class SteamingDataExtractor(BaseModel):
                     max_value = max(int(re.findall(r"[\d.]+", x)) for x in value_list)
                     min_value = min(int(re.findall(r"[\d.]+", x)) for x in value_list)
                     result_dict["temperature"] = f"{max_value} {unit}"
-                    result_dict["saturation_temperature_C"] = f"{min_value} {unit}"
+                    result_dict["saturation_temperature"] = f"{min_value} {unit}"
                 elif len(value_list) == 1:
                     result_dict["temperature"] = value_list[0]
-                    result_dict["saturation_temperature_C"] = None
+                    result_dict["saturation_temperature"] = None
                 else:
                     result_dict["temperature"] = None
-                    result_dict["saturation_temperature_C"] = None
+                    result_dict["saturation_temperature"] = None
             else:
                 if len(value_list) == 0:
                     result_dict[field] = None
