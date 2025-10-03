@@ -1200,7 +1200,7 @@ class SteamingDataExtractor(BaseModel):
                 data_prompt_dict = json.load(f)
         self._data_prompt = PromptFormatter(**data_prompt_dict)
         self._data_prompt.model_post_init(self.prompt_template_path)
-        self._condition_parser = ParametersParser(parser_params_path=parser_params_path, convert_units=False, atmosphere=False)
+        self._condition_parser = ParametersParser(parser_params_path=parser_params_path, convert_units=False)
         self._complex_parser = ComplexParametersParser(parser_params_path=parser_params_path)
         if self.llm_model_name is None:
             self._llm_model = ModelLLM(model_name="microsoft/Phi-3-medium-4k-instruct")

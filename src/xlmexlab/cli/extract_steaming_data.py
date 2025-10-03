@@ -61,8 +61,8 @@ def steaming_extraction(
         for sample in sample_list:
             steaming_data: Dict[str, Any] = steaming_extractor.extract(sample["procedure"])
             results.append(steaming_data)
-            with open(output_file_path, "a") as f:
-                f.write(str(results) + "\n")
+        with open(output_file_path, "a") as f:
+            f.write(str(results) + "\n")
         count = count + 1
     print(f"{(time.time() - start_time) / 60} minutes")
 
