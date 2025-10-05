@@ -2027,8 +2027,9 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
 CUSTOM_ACTION_REGISTRY: Dict[str, Any] = {
     "add": Add,
     "newsolution": NewSolution,
-    "makesolution": NewSolution,
+    "makesolution": MakeSolution,
     "newmixture": NewSolution,
+    "makemixture": MakeSolution,
     "crystallization": Crystallization,
     "separate": Separate,
     "sonicate": Stir,
@@ -2063,14 +2064,12 @@ CUSTOM_ACTION_REGISTRY: Dict[str, Any] = {
     "separate": Separate,
     "collectlayer": CollectLayer,
     "sonicate": Sonicate,
-    "reflux": SetTemperature,
     "seaparation": Separate,
     "phaseseparation": PhaseSeparation,
     "centrifugate": PhaseSeparation,
     "filter": PhaseSeparation,
     "collectlayer": CollectLayer,
     "collect": CollectLayer,
-    "purify": Wash,
     "disperse": Add,
     "degas": Degas,
     "extract": Extract,
@@ -2082,17 +2081,6 @@ CUSTOM_ACTION_REGISTRY: Dict[str, Any] = {
     "partition": Partition,
     "recrystallize": Recrystallize,
     "triturate": Triturate,
-    "transfer": None,
-    "degas": None,
-    "invalidaction": None,
-    "recrystallize": None,
-    "followotherprocedure": None,
-    "synthesisproduct": None,
-    "synthesismethod": None,
-    "synthesisvariant": None,
-    "yield": None,
-    "noaction": None,
-
 }
 
 ELEMENTARY_ACTION_REGISTRY: Dict[str, Any] = {

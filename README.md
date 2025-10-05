@@ -47,7 +47,42 @@ Action Extraction consists in extracting a sequence of experimental actions that
 ```bash
 xlmexlab-text2actions --actions_type materials  path_to_paragraphs.txt path_to_results.txt
 ```
-The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/xlmexlab/resources/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```None```, otherwise the post processing of that field will be aplied on the model response. If you want to run the pipeline on a subset of the existing action sets you just need to remove the action that you do not want from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/xlmexlab/actions.py). To create a complete new action set you can contact us for further colaborations.
+The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/xlmexlab/resources/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```Custom```, otherwise the post processing of that field will be aplied on the model response. With the ```--actions_type``` argument set to ```Custom``` the action set sued is controled on the prompt level, allowing you to control the action just by removing and adding actions from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/xlmexlab/actions.py). To create a complete new action set you can contact us for further colaborations. All the actions that can be used right now are present in the following table:
+
+| Action    | Description | Available Words for Prompt |
+| -------- | ------- | ------- |
+| Add |  |  |
+| AcidTreatment |  |  |
+| AlkalineTreatment |  |  |
+| CollectLayer |  |  |
+| Concentrate |  |  |
+| Crystallization |  |  |
+| Degas |  |  |
+| Dry |  |  |
+| DrySolid |  |  |
+| DrySolution |  |  |
+| Extract |  |  |
+| Grind |  |  |
+| IonExchange |  |  |
+| MakeSolution |  |  |
+| NewSolution |  |  |
+| Partition |  |  |
+| PhaseSeparation |  |  |
+| PH |  |  |
+| Purify |  |  |
+| Quench |  |  |
+| Separate |  |  |
+| SetTemperature |  |  |
+| Sieve |  |  |
+| Sonicate |  |  |
+| Recrystallize |  |  |
+| ReduceTemperature |  |  |
+| Repeat |  |  |
+| ThermalTreatment |  |  |
+| Transfer |  |  |
+| Triturate |  |  |
+| Wait |  |  |
+| Wash |  |  |
 
 ###Sample Finder
 The extraction pipeline is Work in Progress
