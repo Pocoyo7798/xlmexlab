@@ -1,13 +1,13 @@
+import os
 import time
 from typing import List, Optional
-import torch
-import os
-from xlmexlab.randomization import seed_everything
 
 import click
+import torch
 
 from xlmexlab.extractor import ActionExtractorFromText
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+from xlmexlab.randomization import seed_everything
 
 
 @click.command()
@@ -87,11 +87,11 @@ def text2actions(
     solution_chemical_prompt_schema_path: Optional[str],
     llm_model_name: str,
     llm_model_parameters_path: Optional[str],
-    elementar_actions: bool
+    elementar_actions: bool,
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
-    os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = "0"
+    os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]
@@ -111,9 +111,9 @@ def text2actions(
         solution_chemical_prompt_schema_path=solution_chemical_prompt_schema_path,
         llm_model_name=llm_model_name,
         llm_model_parameters_path=llm_model_parameters_path,
-        elementar_actions=elementar_actions
+        elementar_actions=elementar_actions,
     )
-    #extractor.model_post_init(None)
+    # extractor.model_post_init(None)
     with open(text_file_path, "r") as f:
         text_lines: List[str] = f.readlines()
     size = len(text_lines)

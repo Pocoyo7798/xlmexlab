@@ -1,10 +1,11 @@
 import time
 from typing import Any, Dict, List, Optional
-import torch
 
 import click
+import torch
 
 from xlmexlab.extractor import MolarRatioExtractorFromText
+
 
 @click.command()
 @click.argument("text_file_path", type=str)
@@ -21,7 +22,9 @@ def text2molar_ratio(
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
-    extractor: MolarRatioExtractorFromText = MolarRatioExtractorFromText(chemicals_path=valid_chemicals_path)
+    extractor: MolarRatioExtractorFromText = MolarRatioExtractorFromText(
+        chemicals_path=valid_chemicals_path
+    )
     extractor.model_post_init(None)
     with open(text_file_path, "r") as f:
         text_lines: List[str] = f.readlines()
@@ -34,6 +37,7 @@ def text2molar_ratio(
             f.write(str(molar_ratio) + "\n")
         count = count + 1
     print(f"{(time.time() - start_time) / 60} minutes")
+
 
 def main():
     text2molar_ratio()

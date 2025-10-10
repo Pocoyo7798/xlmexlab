@@ -1,11 +1,12 @@
+import os
 import time
 from typing import List, Optional
-import os
 
 import click
 
 from xlmexlab.extractor import TableExtractor
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+
 
 @click.command()
 @click.argument("image_folder", type=str)
@@ -48,7 +49,7 @@ def table2data(
     prompt_schema_path: Optional[str],
     llm_model_name: str,
     llm_model_parameters_path: Optional[str],
-    table_schema_path: Optional[str]
+    table_schema_path: Optional[str],
 ):
     start_time = time.time()
     if prompt_template_path is None:
@@ -57,7 +58,13 @@ def table2data(
             prompt_template_path = TEMPLATE_REGISTRY[name]
         except KeyError:
             pass
-    extractor: TableExtractor = TableExtractor(table_type=table_type, prompt_template_path=prompt_template_path, prompt_schema_path=prompt_schema_path, vlm_model_name=llm_model_name, vlm_model_parameters_path=llm_model_parameters_path)
+    extractor: TableExtractor = TableExtractor(
+        table_type=table_type,
+        prompt_template_path=prompt_template_path,
+        prompt_schema_path=prompt_schema_path,
+        vlm_model_name=llm_model_name,
+        vlm_model_parameters_path=llm_model_parameters_path,
+    )
     file_list = os.listdir(image_folder)
     if os.path.isfile(output_file_path):
         os.remove(output_file_path)
@@ -69,6 +76,7 @@ def table2data(
             file_path = f"{image_folder}/{file}"
             extractor.extract_table_info(file_path)
     print(f"{(time.time() - start_time) / 60} minutes")
+
 
 def main():
     table2data()

@@ -1,12 +1,13 @@
+import os
 import time
 from typing import List, Optional
-import torch
-import os
 
 import click
+import torch
 
 from xlmexlab.extractor import SamplesExtractorFromText
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+
 
 @click.command()
 @click.argument("text_file_path", type=str)
@@ -62,9 +63,7 @@ def text2samples(
     count = 1
     for text in text_lines:
         print(f"text processed: {count}/{size}")
-        results: str = str(
-            extractor.retrieve_samples_from_text(text)
-        )
+        results: str = str(extractor.retrieve_samples_from_text(text))
         with open(output_file_path, "a") as f:
             f.write(str(results) + "\n")
         count = count + 1

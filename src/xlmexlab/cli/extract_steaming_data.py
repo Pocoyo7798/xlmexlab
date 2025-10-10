@@ -1,13 +1,13 @@
+import os
 import time
 from typing import Any, Dict, List, Optional
-import torch
-import os
-from xlmexlab.randomization import seed_everything
 
 import click
+import torch
 
-from xlmexlab.extractor import SteamingDataExtractor, SamplesExtractorFromText
+from xlmexlab.extractor import SamplesExtractorFromText, SteamingDataExtractor
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+from xlmexlab.randomization import seed_everything
 
 
 @click.command()
@@ -30,23 +30,25 @@ from xlmexlab.prompt import TEMPLATE_REGISTRY
 )
 def steaming_extraction(
     text_file_path: str,
-    output_file_path:str,
+    output_file_path: str,
     llm_model_name: str,
     llm_model_parameters_path: Optional[str],
     prompt_template_path: Optional[str],
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
-    os.environ['VLLM_ENABLE_V1_MULTIPROCESSING'] = "0"
+    os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]
             prompt_template_path = TEMPLATE_REGISTRY[name]
         except KeyError:
             pass
-    steaming_extractor: SteamingDataExtractor = SteamingDataExtractor(llm_model_name=llm_model_name, 
-                                              llm_model_parameters_path=llm_model_parameters_path,
-                                              prompt_template_path=prompt_template_path)
+    steaming_extractor: SteamingDataExtractor = SteamingDataExtractor(
+        llm_model_name=llm_model_name,
+        llm_model_parameters_path=llm_model_parameters_path,
+        prompt_template_path=prompt_template_path,
+    )
     sample_extractor: SamplesExtractorFromText = SamplesExtractorFromText()
     with open(text_file_path, "r") as f:
         text_lines: List[str] = f.readlines()
@@ -56,10 +58,14 @@ def steaming_extraction(
         os.remove(output_file_path)
     for text in text_lines:
         print(f"text processed: {count}/{size}")
-        sample_list: List[Dict[str, Any]] = sample_extractor.retrieve_samples_from_text(text)
+        sample_list: List[Dict[str, Any]] = sample_extractor.retrieve_samples_from_text(
+            text
+        )
         results = []
         for sample in sample_list:
-            steaming_data: Dict[str, Any] = steaming_extractor.extract(sample["procedure"])
+            steaming_data: Dict[str, Any] = steaming_extractor.extract(
+                sample["procedure"]
+            )
             results.append(steaming_data)
         with open(output_file_path, "a") as f:
             f.write(str(results) + "\n")

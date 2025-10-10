@@ -1,25 +1,31 @@
+import re
 from typing import Any, ClassVar, Dict, List, Optional
 
-from pydantic import BaseModel, validator, PrivateAttr
-import re
+from pydantic import BaseModel, PrivateAttr, validator
 
 from xlmexlab.parser import (
-    Conditions,
     ComplexConditions,
     ComplexParametersParser,
+    Conditions,
     DimensionlessParser,
     KeywordSearching,
     ParametersParser,
     SchemaParser,
 )
 
+
 class Chemical(BaseModel):
     name: str = ""
     quantity: Optional[List[str]] = []
     concentration: Optional[List[str]] = []
     _chemical_type: str = PrivateAttr(default="reactant")
-    
-    def get_chemical(self, schema: str, schema_parser: SchemaParser, complex_parser: ComplexParametersParser = None) -> bool:
+
+    def get_chemical(
+        self,
+        schema: str,
+        schema_parser: SchemaParser,
+        complex_parser: ComplexParametersParser = None,
+    ) -> bool:
         """get the chemical information from a schema
 
         Args:
@@ -52,16 +58,21 @@ class Chemical(BaseModel):
         else:
             new_dropwise = False
         if len(schema_parser.get_atribute_value(schema, "type")) > 0:
-            if schema_parser.get_atribute_value(schema, "type")[0].lower() == "final solution":
+            if (
+                schema_parser.get_atribute_value(schema, "type")[0].lower()
+                == "final solution"
+            ):
                 self._chemical_type = "final solution"
         concentration_list: List[str] = []
         if complex_parser is not None:
             complex_conditions: ComplexConditions = complex_parser.get_parameters(
-            schema
-        )
+                schema
+            )
             concentration_list = complex_conditions.concentration
         if concentration_list == []:
-            concentration_list = schema_parser.get_atribute_value(schema, "concentration")
+            concentration_list = schema_parser.get_atribute_value(
+                schema, "concentration"
+            )
         if len(concentration_list) == 0:
             pass
         elif concentration_list[0].replace(",", "").strip().lower() == "n/a":
@@ -72,7 +83,12 @@ class Chemical(BaseModel):
             self.concentration = concentration_list
         return new_dropwise
 
-    def get_quantity(self, text: str, amount_parser: ParametersParser, get_concentration: bool=False) -> Any:
+    def get_quantity(
+        self,
+        text: str,
+        amount_parser: ParametersParser,
+        get_concentration: bool = False,
+    ) -> Any:
         """update the chemical quantity information
 
         Args:
@@ -95,6 +111,7 @@ class Chemical(BaseModel):
         else:
             return max_repetitions
 
+
 class ChemicalInfo(BaseModel):
     chemical_list: list[Chemical] = []
     dropwise: list[bool] = []
@@ -108,7 +125,7 @@ class Actions(BaseModel):
     action_name: str = ""
     action_context: str = ""
     type: ClassVar[Optional[str]] = None
-    
+
     def generate_dict(self) -> Dict[str, Any]:
         """generatre dictionary of the action object
 
@@ -125,14 +142,13 @@ class Actions(BaseModel):
                 exclude={"action_name", "action_context", "pressure"}
             )
         else:
-            action_dict = self.model_dump(
-                exclude={"action_name", "action_context"}
-            )
+            action_dict = self.model_dump(exclude={"action_name", "action_context"})
         return {"action": action_name, "content": action_dict}
+
 
 class ActionsWithchemicals(Actions):
     type: ClassVar[Optional[str]] = "onlychemicals"
-    
+
     @classmethod
     def validate_chemicals(
         cls,
@@ -141,7 +157,7 @@ class ActionsWithchemicals(Actions):
         amount_parser: ParametersParser,
         context: str,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
+        complex_parser: ComplexParametersParser = None,
     ) -> ChemicalInfo:
         """extract the chemical information from a list of schemas
 
@@ -160,8 +176,12 @@ class ActionsWithchemicals(Actions):
         repetitions_list: List[int] = []
         for schema in schemas:
             new_chemical: Chemical = Chemical()
-            dropwise: bool = new_chemical.get_chemical(schema, schema_parser, complex_parser=complex_parser)
-            banned_names: List[str] = banned_parser.find_keywords(new_chemical.name.lower())
+            dropwise: bool = new_chemical.get_chemical(
+                schema, schema_parser, complex_parser=complex_parser
+            )
+            banned_names: List[str] = banned_parser.find_keywords(
+                new_chemical.name.lower()
+            )
             if len(schemas) > 1:
                 repetitions: Any = new_chemical.get_quantity(schema, amount_parser)
             else:
@@ -184,10 +204,16 @@ class ActionsWithchemicals(Actions):
             chemical_info.repetitions = max(repetitions_list)
         return chemical_info
 
+
 class ActionsWithConditons(Actions):
     type: ClassVar[Optional[str]] = "onlyconditions"
 
-    def validate_conditions(self, conditions_parser: ParametersParser, complex_conditions_parser: Optional[ComplexParametersParser]=None, add_others: bool=False) -> None:
+    def validate_conditions(
+        self,
+        conditions_parser: ParametersParser,
+        complex_conditions_parser: Optional[ComplexParametersParser] = None,
+        add_others: bool = False,
+    ) -> None:
         """update the conditions associated with an action
 
         Args:
@@ -200,8 +226,8 @@ class ActionsWithConditons(Actions):
         ).__dict__
         if complex_conditions_parser is not None:
             complex_conditions = complex_conditions_parser.get_parameters(
-            self.action_context
-        ).__dict__
+                self.action_context
+            ).__dict__
         for atribute in self.__dict__.keys():
             try:
                 if atribute == "atmosphere":
@@ -234,7 +260,7 @@ class ActionsWithChemicalAndConditions(Actions):
         amount_parser: ParametersParser,
         context: str,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
+        complex_parser: ComplexParametersParser = None,
     ) -> ChemicalInfo:
         """extract the chemical information from a list of schemas
 
@@ -253,8 +279,12 @@ class ActionsWithChemicalAndConditions(Actions):
         repetitions_list: List[int] = []
         for schema in schemas:
             new_chemical: Chemical = Chemical()
-            dropwise: bool = new_chemical.get_chemical(schema, schema_parser, complex_parser=complex_parser)
-            banned_names: List[str] = banned_parser.find_keywords(new_chemical.name.lower())
+            dropwise: bool = new_chemical.get_chemical(
+                schema, schema_parser, complex_parser=complex_parser
+            )
+            banned_names: List[str] = banned_parser.find_keywords(
+                new_chemical.name.lower()
+            )
             if len(schemas) > 1:
                 repetitions: Any = new_chemical.get_quantity(schema, amount_parser)
             else:
@@ -277,7 +307,12 @@ class ActionsWithChemicalAndConditions(Actions):
             chemical_info.repetitions = max(repetitions_list)
         return chemical_info
 
-    def validate_conditions(self, conditions_parser: ParametersParser, complex_conditions_parser: Optional[ComplexParametersParser]=None, add_others: bool=False) -> None:
+    def validate_conditions(
+        self,
+        conditions_parser: ParametersParser,
+        complex_conditions_parser: Optional[ComplexParametersParser] = None,
+        add_others: bool = False,
+    ) -> None:
         """update the conditions associated with an action
 
         Args:
@@ -290,8 +325,8 @@ class ActionsWithChemicalAndConditions(Actions):
         ).__dict__
         if complex_conditions_parser is not None:
             complex_conditions = complex_conditions_parser.get_parameters(
-            self.action_context
-        ).__dict__
+                self.action_context
+            ).__dict__
         for atribute in self.__dict__.keys():
             try:
                 if atribute == "atmosphere":
@@ -312,13 +347,14 @@ class ActionsWithChemicalAndConditions(Actions):
                     pass
             setattr(self, atribute, new_value)
 
+
 class Treatment(ActionsWithChemicalAndConditions):
     solutions: List[Chemical] = []
     suspension_concentration: Optional[str] = None
     temperature: Optional[str] = None
     duration: Optional[str] = None
     repetitions: int = 1
-    
+
     @classmethod
     def generate_treatment(
         cls,
@@ -329,7 +365,7 @@ class Treatment(ActionsWithChemicalAndConditions):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing the actions that describe a treatment
 
@@ -349,37 +385,64 @@ class Treatment(ActionsWithChemicalAndConditions):
         action: Treatment = cls(action_name=name, action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser, complex_parser=complex_parser
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
+            complex_parser=complex_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
         else:
             action.solutions = chemicals_info.chemical_list
             action.repetitions = chemicals_info.repetitions
-        concentration: List[str] = re.findall(r'\d+', str(action.suspension_concentration))
+        concentration: List[str] = re.findall(
+            r"\d+", str(action.suspension_concentration)
+        )
         list_of_actions: List[Any] = []
         if len(action.solutions) > 0:
-            list_of_actions.append(NewSolution(action_name="NewSolution").generate_dict())
+            list_of_actions.append(
+                NewSolution(action_name="NewSolution").generate_dict()
+            )
             for solution in action.solutions:
                 new_action: Actions = Add(action_name="Add", material=solution)
                 list_of_actions.append(new_action.generate_dict())
         if action.temperature is not None:
-            new_action = SetTemperature(action_name="SetTemperature", temperature=action.temperature)
+            new_action = SetTemperature(
+                action_name="SetTemperature", temperature=action.temperature
+            )
             list_of_actions.append(new_action.generate_dict())
         if len(concentration) > 0:
-            new_sample: Dict[str, Any] = {'action': 'Add', 'content': {'material': {'name': 'sample', 'quantity': ['1 g'], 'concentration': []}}, 'dropwise': False, 'duration': None, 'ph': None}
+            new_sample: Dict[str, Any] = {
+                "action": "Add",
+                "content": {
+                    "material": {
+                        "name": "sample",
+                        "quantity": ["1 g"],
+                        "concentration": [],
+                    }
+                },
+                "dropwise": False,
+                "duration": None,
+                "ph": None,
+            }
             list_of_actions.append(new_sample)
         if action.duration is not None:
             new_action = Stir(action_name="Stir", duration=action.duration)
             list_of_actions.append(new_action.generate_dict())
         if action.repetitions > 1:
-            list_of_actions.append(Repeat(action_name="Repeat", amount=action.repetitions))
+            list_of_actions.append(
+                Repeat(action_name="Repeat", amount=action.repetitions)
+            )
         elif action.repetitions == 1:
             list_of_actions.extend(Repeat.generate_action(context))
         list_of_actions.extend(Repeat.generate_action(context))
         return list_of_actions
 
+
 ### Actions for Organic Synthesis
+
 
 class PH(ActionsWithChemicalAndConditions):
     ph: Optional[str] = None
@@ -413,7 +476,11 @@ class PH(ActionsWithChemicalAndConditions):
         action: PH = cls(action_name="PH", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -424,7 +491,9 @@ class PH(ActionsWithChemicalAndConditions):
             print(
                 "Warning: More than one Material have been found on Partition object, only the first one was considered"
             )
-        dimensionless_values: List[str] = DimensionlessParser.get_dimensionless_numbers(context)
+        dimensionless_values: List[str] = DimensionlessParser.get_dimensionless_numbers(
+            context
+        )
         if len(dimensionless_values) == 0:
             pass
         elif len(dimensionless_values) == 1:
@@ -444,7 +513,7 @@ class Add(ActionsWithChemicalAndConditions):
     atmosphere: List[str] = []
     duration: Optional[str] = None
     ph: Optional[str] = None
-    
+
     @classmethod
     def generate_action(
         cls,
@@ -455,7 +524,7 @@ class Add(ActionsWithChemicalAndConditions):
         conditions_parser: ParametersParser,
         ph_parser: KeywordSearching,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one or more Add actions as dictionaries
 
@@ -475,10 +544,17 @@ class Add(ActionsWithChemicalAndConditions):
         action: Add = cls(action_name="Add", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser, complex_parser=complex_parser
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
+            complex_parser=complex_parser,
         )
         if len(ph_parser.find_keywords(context)) > 0:
-            dimensionless_values = DimensionlessParser.get_dimensionless_numbers(context)
+            dimensionless_values = DimensionlessParser.get_dimensionless_numbers(
+                context
+            )
             if len(dimensionless_values) == 0:
                 pass
             elif len(dimensionless_values) == 1:
@@ -539,8 +615,12 @@ class CollectLayer(Actions):
             List[Dict[str, Any]]: a list containing one one CollectLayer action as dictionary
         """
         action: CollectLayer = cls(action_name="CollectLayer", action_context=context)
-        aqueous_keywords: List[str] = parser_aqueous.find_keywords(action.action_context)
-        organic_keywords: List[str] = parser_organic.find_keywords(action.action_context)
+        aqueous_keywords: List[str] = parser_aqueous.find_keywords(
+            action.action_context
+        )
+        organic_keywords: List[str] = parser_organic.find_keywords(
+            action.action_context
+        )
         if len(aqueous_keywords) > 0:
             action.layer = "aqueous"
         elif len(organic_keywords) > 0:
@@ -562,11 +642,7 @@ class Concentrate(Actions):
         Returns:
             List[Dict[str, Any]]: a list containing one Concentrate action as dictionary
         """
-        return [
-            cls(
-                action_name="Concentrate", action_context=context
-            ).generate_dict()
-        ]
+        return [cls(action_name="Concentrate", action_context=context).generate_dict()]
 
 
 class Degas(ActionsWithConditons):
@@ -633,7 +709,7 @@ class DrySolution(ActionsWithChemicalAndConditions):
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one DrySolution action as a dictionary
 
@@ -650,7 +726,11 @@ class DrySolution(ActionsWithChemicalAndConditions):
         """
         action: DrySolution = cls(action_name="DrySolution", action_context=context)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             return DrySolid.generate_action(context, conditions_parser)
@@ -675,7 +755,7 @@ class Extract(ActionsWithchemicals):
         schemas: List[str],
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Extract action as a dictionary
 
@@ -692,7 +772,11 @@ class Extract(ActionsWithchemicals):
         """
         action: Extract = cls(action_name="Extract", action_context=context)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser,
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
         )
         if len(chemicals_info.chemical_list) == 0:
             pass
@@ -745,14 +829,19 @@ class Filter(Actions):
             List[Dict[str, Any]]: a list containing one Filter action as a dictionary
         """
         action: Filter = cls(action_name="Filter", action_context=context)
-        filtrate_results: List[str] = filtrate_parser.find_keywords(action.action_context)
-        precipitate_results: List[str] = precipitate_parser.find_keywords(action.action_context)
+        filtrate_results: List[str] = filtrate_parser.find_keywords(
+            action.action_context
+        )
+        precipitate_results: List[str] = precipitate_parser.find_keywords(
+            action.action_context
+        )
         if len(filtrate_results) > 0:
             action.phase_to_keep = "filtrate"
         elif len(precipitate_results) > 0:
             action.phase_to_keep = "precipitate"
         return [action.generate_dict()]
-    
+
+
 class Centrifuge(Actions):
     """
     Filtration action, possibly with information about what phase to keep ('filtrate' or 'precipitate')
@@ -771,7 +860,6 @@ class Centrifuge(Actions):
                 'phase_to_keep must be equal to "filtrate" or "precipitate"'
             )
         return phase_to_keep
-    
 
     @classmethod
     def generate_action(
@@ -791,14 +879,17 @@ class Centrifuge(Actions):
             List[Dict[str, Any]]: a list containing one Centrifuge action as a dictionary
         """
         action: Centrifuge = cls(action_name="Centrifuge", action_context=context)
-        filtrate_results: List[str] = filtrate_parser.find_keywords(action.action_context)
-        precipitate_results: List[str] = precipitate_parser.find_keywords(action.action_context)
+        filtrate_results: List[str] = filtrate_parser.find_keywords(
+            action.action_context
+        )
+        precipitate_results: List[str] = precipitate_parser.find_keywords(
+            action.action_context
+        )
         if len(filtrate_results) > 0:
             action.phase_to_keep = "filtrate"
         elif len(precipitate_results) > 0:
             action.phase_to_keep = "precipitate"
         return [action.generate_dict()]
-
 
 
 class MakeSolution(ActionsWithChemicalAndConditions):
@@ -821,7 +912,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 f"MakeSolution requires at least two components (actual: {len(materials)}"
             )
         return materials
-    
+
     @classmethod
     def generate_action(
         cls,
@@ -832,7 +923,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
         conditions_parser: ParametersParser,
         ph_parser: KeywordSearching,
         banned_parser: KeywordSearching,
-        complex_parser=None
+        complex_parser=None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Makesolution action or one Add action as dictionaries
 
@@ -852,7 +943,13 @@ class MakeSolution(ActionsWithChemicalAndConditions):
         action: MakeSolution = cls(action_name="MakeSolution", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser, complex_parser=complex_parser)
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
+            complex_parser=complex_parser,
+        )
         if len(chemicals_info.chemical_list) == 0:
             return []
         elif len(chemicals_info.chemical_list) == 1:
@@ -864,7 +961,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                 conditions_parser,
                 ph_parser,
                 banned_parser,
-                complex_parser=complex_parser
+                complex_parser=complex_parser,
             )
         else:
             action.materials = chemicals_info.chemical_list
@@ -873,7 +970,7 @@ class MakeSolution(ActionsWithChemicalAndConditions):
                     action.dropwise = True
                     break
             return [action.generate_dict()]
-    
+
 
 class Microwave(ActionsWithConditons):
     duration: Optional[str] = None
@@ -908,7 +1005,7 @@ class Partition(ActionsWithchemicals):
         schemas: List[str],
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one oPartition action as dictionary
 
@@ -968,14 +1065,24 @@ class PhaseSeparation(Actions):
         Returns:
             List[Dict[str, Any]]: a list containing one PhaseSeparation action as a dictionary
         """
-        action: PhaseSeparation = cls(action_name="PhaseSeparation", action_context=context)
-        filter_results: List[str] = filter_parser.find_keywords(action.action_context.lower())
-        centrifuge_results: List[str] = centrifuge_parser.find_keywords(action.action_context.lower())
-        evaporation_results: List[str] = evaporation_parser.find_keywords(action.action_context.lower())
+        action: PhaseSeparation = cls(
+            action_name="PhaseSeparation", action_context=context
+        )
+        filter_results: List[str] = filter_parser.find_keywords(
+            action.action_context.lower()
+        )
+        centrifuge_results: List[str] = centrifuge_parser.find_keywords(
+            action.action_context.lower()
+        )
+        evaporation_results: List[str] = evaporation_parser.find_keywords(
+            action.action_context.lower()
+        )
         if len(filter_results) > 0:
             return Filter.generate_action(context, filtrate_parser, precipitate_parser)
         elif len(centrifuge_results) > 0:
-            return Centrifuge.generate_action(context, filtrate_parser, precipitate_parser)
+            return Centrifuge.generate_action(
+                context, filtrate_parser, precipitate_parser
+            )
         elif len(evaporation_results) > 0:
             return DrySolid.generate_action(context, conditions_parser)
         else:
@@ -993,9 +1100,7 @@ class Purify(Actions):
         Returns:
             List[Dict[str, Any]]: a list containing one Purify action as dictionary
         """
-        return [
-            cls(action_name="Purify", action_context=context).generate_dict()
-        ]
+        return [cls(action_name="Purify", action_context=context).generate_dict()]
 
 
 class Quench(ActionsWithChemicalAndConditions):
@@ -1012,7 +1117,7 @@ class Quench(ActionsWithChemicalAndConditions):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         ph_parser: KeywordSearching,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Quench action as dictionary
 
@@ -1046,7 +1151,12 @@ class Quench(ActionsWithChemicalAndConditions):
             )
         if len(ph_parser.find_keywords(context)) > 0:
             new_action: List[Dict[str, Any]] = PH.generate_action(
-                context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser
+                context,
+                schemas,
+                schema_parser,
+                amount_parser,
+                conditions_parser,
+                banned_parser,
             )
             return [action.generate_dict()] + new_action
         return [action.generate_dict()]
@@ -1067,7 +1177,7 @@ class Recrystallize(ActionsWithChemicalAndConditions):
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Recrystallize action as dictionary
 
@@ -1121,17 +1231,20 @@ class Reflux(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         return [action.generate_dict()]
 
-    
+
 class Stir(ActionsWithConditons):
     duration: Optional[str] = None
     stirring_speed: Optional[str] = None
     temperature: Optional[str] = None
     atmosphere: List[str] = []
     pressure: Optional[str] = None
-    
+
     @classmethod
     def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
+        cls,
+        context: str,
+        conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Stir action as dictionary or an empty list
 
@@ -1144,7 +1257,9 @@ class Stir(ActionsWithConditons):
             List[Dict[str, Any]]: a list containing one Stir action as dictionary or an empty list
         """
         action: Stir = cls(action_name="Stir", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        action.validate_conditions(
+            conditions_parser, complex_conditions_parser=complex_conditions_parser
+        )
         list_of_actions: List[Any] = []
         if action.duration is not None:
             list_of_actions.append(action.generate_dict())
@@ -1180,12 +1295,17 @@ class SetTemperature(ActionsWithConditons):
         Returns:
             List[Dict[str, Any]]: a list containing one SetTemperature action as a dicionary
         """
-        action: SetTemperature = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        action: SetTemperature = cls(
+            action_name="SetTemperature", action_context=context
+        )
+        action.validate_conditions(
+            conditions_parser, complex_conditions_parser=complex_conditions_parser
+        )
         keywords_list: List[str] = microwave_parser.find_keywords(context)
         if len(keywords_list) > 0:
             action.microwave = True
         return [action.generate_dict()]
+
 
 class ReduceTemperature(ActionsWithConditons):
 
@@ -1216,14 +1336,19 @@ class ReduceTemperature(ActionsWithConditons):
         Returns:
             List[Dict[str, Any]]: a list containing one SetTemperature action as a dicionary
         """
-        action: SetTemperature = cls(action_name="SetTemperature", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        action: SetTemperature = cls(
+            action_name="SetTemperature", action_context=context
+        )
+        action.validate_conditions(
+            conditions_parser, complex_conditions_parser=complex_conditions_parser
+        )
         if action.temperature is None:
             action.temperature == "cool"
         keywords_list = microwave_parser.find_keywords(context)
         if len(keywords_list) > 0:
             action.microwave = True
         return [action.generate_dict()]
+
 
 class Sonicate(ActionsWithConditons):
     duration: Optional[str] = None
@@ -1257,7 +1382,7 @@ class Triturate(ActionsWithchemicals):
         schemas: List[str],
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
-        banned_parser
+        banned_parser,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Triturate action as dictionary
 
@@ -1331,7 +1456,7 @@ class Wash(ActionsWithChemicalAndConditions):
         centrifuge_parser: KeywordSearching,
         filter_parser: KeywordSearching,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one or more Wash actions as dictionaries
 
@@ -1352,10 +1477,16 @@ class Wash(ActionsWithChemicalAndConditions):
         action: Wash = cls(action_name="Wash", action_context=context)
         action.validate_conditions(conditions_parser)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, 
-            action.action_context, banned_parser, complex_parser=complex_parser
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
+            complex_parser=complex_parser,
         )
-        centrifuge_results: List[str] = centrifuge_parser.find_keywords(action.action_context)
+        centrifuge_results: List[str] = centrifuge_parser.find_keywords(
+            action.action_context
+        )
         filter_results: List[str] = filter_parser.find_keywords(action.action_context)
         list_of_actions: List[Any] = []
         if len(filter_results) > 0:
@@ -1367,7 +1498,9 @@ class Wash(ActionsWithChemicalAndConditions):
         elif len(schemas) == 1:
             action.material = chemicals_info.chemical_list[0]
             action.repetitions = chemicals_info.repetitions
-            number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
+            number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(
+                re.sub(r"\d+[\.:]", "", context)
+            )
             if action.repetitions == 1:
                 if len(number_list) == 0:
                     pass
@@ -1377,7 +1510,7 @@ class Wash(ActionsWithChemicalAndConditions):
                     action.repetitions = int(float(number_list[0]))
                     print(
                         "Warning: More than one adimensional number was found, only the first one was considered"
-                        )
+                    )
                 list_of_actions: List[Any] = []
                 if 6 > action.repetitions > 1:
                     pass
@@ -1388,7 +1521,9 @@ class Wash(ActionsWithChemicalAndConditions):
             for material in chemicals_info.chemical_list:
                 action.material = material
                 action.repetitions = chemicals_info.repetitions
-                number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
+                number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(
+                    re.sub(r"\d+[\.:]", "", context)
+                )
                 if action.repetitions == 1:
                     if len(number_list) == 0:
                         pass
@@ -1398,7 +1533,7 @@ class Wash(ActionsWithChemicalAndConditions):
                         action.repetitions = int(float(number_list[0]))
                         print(
                             "Warning: More than one adimensional number was found, only the first one was considered"
-                            )
+                        )
                     list_of_actions: List[Any] = []
                     if 6 > action.repetitions > 1:
                         pass
@@ -1406,6 +1541,7 @@ class Wash(ActionsWithChemicalAndConditions):
                         action.repetitions = 1
                 list_of_actions.append(action.generate_dict())
         return list_of_actions
+
 
 class Yield(ActionsWithchemicals):
     material: Optional[Chemical] = None
@@ -1417,7 +1553,7 @@ class Yield(ActionsWithchemicals):
         schemas: List[str],
         schema_parser: SchemaParser,
         amount_parser: ParametersParser,
-        banned_parser: KeywordSearching
+        banned_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Yield action as dictionary
 
@@ -1460,7 +1596,7 @@ class NewSolution(ActionsWithChemicalAndConditions):
         conditions_parser: ParametersParser,
         ph_parser: KeywordSearching,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None,
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Newsolution action and one or more Add actions as dictionaries
 
@@ -1479,17 +1615,29 @@ class NewSolution(ActionsWithChemicalAndConditions):
         """
         action: NewSolution = cls(action_name="NewSolution", action_context=context)
         chemicals_info: ChemicalInfo = action.validate_chemicals(
-            schemas, schema_parser, amount_parser, action.action_context, banned_parser, complex_parser=complex_parser
+            schemas,
+            schema_parser,
+            amount_parser,
+            action.action_context,
+            banned_parser,
+            complex_parser=complex_parser,
         )
         if chemicals_info.final_solution is not None:
             action.solution = chemicals_info.final_solution
         list_of_actions: List[Dict[str, Any]] = []
         list_of_actions.append(action.generate_dict())
         add_actions = Add.generate_action(
-                context, schemas, schema_parser, amount_parser, conditions_parser, ph_parser, banned_parser
-            )
+            context,
+            schemas,
+            schema_parser,
+            amount_parser,
+            conditions_parser,
+            ph_parser,
+            banned_parser,
+        )
         list_of_actions += add_actions
         return list_of_actions
+
 
 class Crystallization(ActionsWithConditons):
     temperature: Optional[str] = None
@@ -1500,7 +1648,11 @@ class Crystallization(ActionsWithConditons):
 
     @classmethod
     def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser, microwave_parser: KeywordSearching
+        cls,
+        context: str,
+        conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
+        microwave_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one Crystallization action as a dicionary
 
@@ -1513,12 +1665,17 @@ class Crystallization(ActionsWithConditons):
         Returns:
             List[Dict[str, Any]]: a list containing one Crystallization action as a dicionary
         """
-        action: Crystallization = cls(action_name="Crystallization", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        action: Crystallization = cls(
+            action_name="Crystallization", action_context=context
+        )
+        action.validate_conditions(
+            conditions_parser, complex_conditions_parser=complex_conditions_parser
+        )
         keywords_list: List[str] = microwave_parser.find_keywords(context)
         if len(keywords_list) > 0:
             action.microwave = True
         return [action.generate_dict()]
+
 
 class Separate(ActionsWithConditons):
     temperature: Optional[str] = None
@@ -1534,15 +1691,23 @@ class Separate(ActionsWithConditons):
         precipitate_parser: KeywordSearching,
         centrifuge_parser: KeywordSearching,
         filter_parser: KeywordSearching,
-        evaporation_parser: KeywordSearching
+        evaporation_parser: KeywordSearching,
     ) -> List[Dict[str, Any]]:
         action: Separate = cls(action_name="Separate", action_context=context)
         action.validate_conditions(conditions_parser)
-        filtrate_results: List[str] = filtrate_parser.find_keywords(action.action_context)
-        precipitate_results: List[str] = precipitate_parser.find_keywords(action.action_context)
-        centrifuge_results: List[str] = centrifuge_parser.find_keywords(action.action_context)
+        filtrate_results: List[str] = filtrate_parser.find_keywords(
+            action.action_context
+        )
+        precipitate_results: List[str] = precipitate_parser.find_keywords(
+            action.action_context
+        )
+        centrifuge_results: List[str] = centrifuge_parser.find_keywords(
+            action.action_context
+        )
         filter_results: List[str] = filter_parser.find_keywords(action.action_context)
-        evaporation_results: List[str] = evaporation_parser.find_keywords(action.action_context)
+        evaporation_results: List[str] = evaporation_parser.find_keywords(
+            action.action_context
+        )
         if len(filtrate_results) > 0:
             action.phase_to_keep = "filtrate"
         elif len(precipitate_results) > 0:
@@ -1552,10 +1717,8 @@ class Separate(ActionsWithConditons):
         elif len(centrifuge_results) > 0:
             action.method = "centrifugation"
         elif len(evaporation_results) > 0:
-            action = Dry(action_name = "Dry", temperature=action.temperature)
+            action = Dry(action_name="Dry", temperature=action.temperature)
         return [action.generate_dict()]
-        
-
 
 
 class Dry(ActionsWithConditons):
@@ -1580,15 +1743,20 @@ class Dry(ActionsWithConditons):
         action.validate_conditions(conditions_parser)
         return [action.generate_dict()]
 
+
 class ThermalTreatment(ActionsWithConditons):
     temperature: Optional[str] = None
     duration: Optional[str] = None
     heat_ramp: Optional[str] = None
     atmosphere: List[str] = []
     flow_rate: Optional[str] = None
+
     @classmethod
     def generate_action(
-        cls, context: str, conditions_parser: ParametersParser, complex_conditions_parser: ComplexParametersParser
+        cls,
+        context: str,
+        conditions_parser: ParametersParser,
+        complex_conditions_parser: ComplexParametersParser,
     ) -> List[Dict[str, Any]]:
         """generate a list containing one ThermalTreatment action as dictionary
 
@@ -1600,12 +1768,17 @@ class ThermalTreatment(ActionsWithConditons):
         Returns:
             List[Dict[str, Any]]: a list containing one ThermalTreatment action as dictionary
         """
-        action: ThermalTreatment = cls(action_name="ThermalTreatment", action_context=context)
-        action.validate_conditions(conditions_parser, complex_conditions_parser=complex_conditions_parser)
+        action: ThermalTreatment = cls(
+            action_name="ThermalTreatment", action_context=context
+        )
+        action.validate_conditions(
+            conditions_parser, complex_conditions_parser=complex_conditions_parser
+        )
         return [action.generate_dict()]
 
+
 class IonExchange(Treatment):
-    
+
     @classmethod
     def generate_action(
         cls,
@@ -1615,7 +1788,7 @@ class IonExchange(Treatment):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing the IonExchange related actions as dictionaries
 
@@ -1632,10 +1805,20 @@ class IonExchange(Treatment):
         Returns:
             List[Dict[str, Any]]: a list containing the IonExchange related actions as dictionaries
         """
-        return Treatment.generate_treatment("IonExchange", context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser, complex_parser=complex_parser)
-    
+        return Treatment.generate_treatment(
+            "IonExchange",
+            context,
+            schemas,
+            schema_parser,
+            amount_parser,
+            conditions_parser,
+            banned_parser,
+            complex_parser=complex_parser,
+        )
+
+
 class AlkalineTreatment(Treatment):
-    
+
     @classmethod
     def generate_action(
         cls,
@@ -1645,7 +1828,7 @@ class AlkalineTreatment(Treatment):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing the AlkalineTreatment related actions as dictionaries
 
@@ -1662,8 +1845,18 @@ class AlkalineTreatment(Treatment):
         Returns:
             List[Dict[str, Any]]: a list containing the Alkaline Treatment related actions as dictionaries
         """
-        return Treatment.generate_treatment("AlkalineTreatment", context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser, complex_parser=complex_parser)
-    
+        return Treatment.generate_treatment(
+            "AlkalineTreatment",
+            context,
+            schemas,
+            schema_parser,
+            amount_parser,
+            conditions_parser,
+            banned_parser,
+            complex_parser=complex_parser,
+        )
+
+
 class AcidTreatment(Treatment):
 
     @classmethod
@@ -1675,7 +1868,7 @@ class AcidTreatment(Treatment):
         amount_parser: ParametersParser,
         conditions_parser: ParametersParser,
         banned_parser: KeywordSearching,
-        complex_parser: ComplexParametersParser=None
+        complex_parser: ComplexParametersParser = None,
     ) -> List[Dict[str, Any]]:
         """generate a list containing the AcidTreatment related actions as dictionaries
 
@@ -1692,11 +1885,21 @@ class AcidTreatment(Treatment):
         Returns:
             List[Dict[str, Any]]: a list containing the AcidTreatment related actions as dictionaries
         """
-        return Treatment.generate_treatment("AcidTreatment", context, schemas, schema_parser, amount_parser, conditions_parser, banned_parser, complex_parser=complex_parser)
-    
+        return Treatment.generate_treatment(
+            "AcidTreatment",
+            context,
+            schemas,
+            schema_parser,
+            amount_parser,
+            conditions_parser,
+            banned_parser,
+            complex_parser=complex_parser,
+        )
+
+
 class Repeat(Actions):
     amount: str = 1
-    
+
     @classmethod
     def generate_action(cls, context: str) -> List[Dict[str, Any]]:
         """generate a list containing one Repeat action as dictionary
@@ -1708,7 +1911,9 @@ class Repeat(Actions):
             List[Dict[str, Any]]: a list containing one Repeat action as dictionary
         """
         action: Repeat = cls(action_name="Repeat", action_context=context)
-        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(re.sub(r"\d+[\.:]", "", context))
+        number_list: List[str] = DimensionlessParser.get_dimensionless_numbers(
+            re.sub(r"\d+[\.:]", "", context)
+        )
         if len(number_list) == 0:
             pass
         elif len(number_list) == 1:
@@ -1717,24 +1922,35 @@ class Repeat(Actions):
             action.amount = int(float(number_list[0]))
             print(
                 "Warning: More than one adimensional number was found, only the first one was considered"
-                )
+            )
         list_of_actions: List[Any] = []
         if 6 > action.amount > 1:
             list_of_actions.append(action.generate_dict())
         return list_of_actions
-    
+
+
 class Transfer(Actions):
     recipient: str = ""
-    
+
     @classmethod
-    def generate_action(cls, context: str, schemas: List[str], schemas_parser: SchemaParser, banned_transfer_parser: KeywordSearching):
+    def generate_action(
+        cls,
+        context: str,
+        schemas: List[str],
+        schemas_parser: SchemaParser,
+        banned_transfer_parser: KeywordSearching,
+    ):
         action: Transfer = cls(action_name="Transfer", action_context=context)
         if len(schemas) == 0:
             pass
         elif len(schemas) == 1:
-            name: List[str] = schemas_parser.get_atribute_value(schemas[0], "recipient_name")
+            name: List[str] = schemas_parser.get_atribute_value(
+                schemas[0], "recipient_name"
+            )
             name.append("")
-            banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(name[0].lower())
+            banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(
+                name[0].lower()
+            )
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
@@ -1749,9 +1965,13 @@ class Transfer(Actions):
             """
             action.recipient = final_name.strip()
         else:
-            name: List[str] = schemas_parser.get_atribute_value(schemas[0], "recipient_name")
+            name: List[str] = schemas_parser.get_atribute_value(
+                schemas[0], "recipient_name"
+            )
             name.append("")
-            banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(name[0].lower())
+            banned_keywords_name: List[str] = banned_transfer_parser.find_keywords(
+                name[0].lower()
+            )
             if len(banned_keywords_name) > 0:
                 final_name = ""
             else:
@@ -1767,7 +1987,7 @@ class Transfer(Actions):
             action.recipient = final_name.strip()
             print(
                 "Warning: More than one recipient was found, only the first one was considered"
-                )
+            )
         return [action.generate_dict()]
 
 
@@ -1781,7 +2001,9 @@ class Grind(ActionsWithConditons):
     size: Optional[str] = None
 
     @classmethod
-    def generate_action(cls, context: str, conditions_parser: ParametersParser) -> List[Dict[str, Any]]:
+    def generate_action(
+        cls, context: str, conditions_parser: ParametersParser
+    ) -> List[Dict[str, Any]]:
         """generate a list containing one Grind action and possibly a Sieve action as dictionaries
 
         Args:
@@ -1795,13 +2017,19 @@ class Grind(ActionsWithConditons):
         action.validate_conditions(conditions_parser, add_others=True)
         list_of_actions: List[Dict[str, Any]] = [action.generate_dict()]
         if action.size is not None:
-            list_of_actions.append(Sieve(action_name="Sieve", size=action.size).generate_dict())
+            list_of_actions.append(
+                Sieve(action_name="Sieve", size=action.size).generate_dict()
+            )
         return list_of_actions
+
 
 class Sieve(ActionsWithConditons):
     size: Optional[str] = None
+
     @classmethod
-    def generate_action(cls, context: str, conditions_parser: ParametersParser) -> List[Dict[str, Any]]:
+    def generate_action(
+        cls, context: str, conditions_parser: ParametersParser
+    ) -> List[Dict[str, Any]]:
         """generate a list containing one Sieve action as dictionary
 
         Args:
@@ -1814,6 +2042,7 @@ class Sieve(ActionsWithConditons):
         action: Sieve = cls(action_name="Sieve", action_context=context)
         action.validate_conditions(conditions_parser, add_others=True)
         return [action.generate_dict()]
+
 
 BANNED_TRANSFER_REGISTRY: List[str] = ["N/A"]
 
@@ -1872,7 +2101,7 @@ BANNED_CHEMICALS_REGISTRY: List[str] = [
     "calcined",
     "extracted",
     "solvent",
-    "initial"
+    "initial",
 ]
 
 ACTION_REGISTRY: Dict[str, Any] = {
@@ -1929,7 +2158,7 @@ PISTACHIO_ACTION_REGISTRY: Dict[str, Any] = {
     "sonicate": Sonicate,
     "degas": Degas,
     "recrystallize": Recrystallize,
-    "triturate": Triturate
+    "triturate": Triturate,
 }
 ORGANIC_ACTION_REGISTRY: Dict[str, Any] = {
     "add": Add,
@@ -1993,13 +2222,13 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "repeat": Repeat,
     "cool": ReduceTemperature,
     "heat": SetTemperature,
-    "settemperature":  SetTemperature,
+    "settemperature": SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
     "extract": Wash,
     "quench": Wash,
     "thermaltreatment": ThermalTreatment,
-    "posttreatment": ThermalTreatment, 
+    "posttreatment": ThermalTreatment,
     "drysolid": Dry,
     "drysolution": Dry,
     "dry": Dry,
@@ -2021,7 +2250,6 @@ MATERIAL_ACTION_REGISTRY: Dict[str, Any] = {
     "synthesisvariant": None,
     "yield": None,
     "noaction": None,
-
 }
 
 CUSTOM_ACTION_REGISTRY: Dict[str, Any] = {
@@ -2050,14 +2278,14 @@ CUSTOM_ACTION_REGISTRY: Dict[str, Any] = {
     "repeat": Repeat,
     "cool": ReduceTemperature,
     "heat": SetTemperature,
-    "settemperature":  SetTemperature,
+    "settemperature": SetTemperature,
     "warm": SetTemperature,
     "grind": Grind,
     "sieve": Sieve,
     "extract": Wash,
     "quench": Wash,
     "thermaltreatment": ThermalTreatment,
-    "posttreatment": ThermalTreatment, 
+    "posttreatment": ThermalTreatment,
     "drysolid": Dry,
     "drysolution": Dry,
     "dry": Dry,
@@ -2143,8 +2371,7 @@ SAC_ACTION_REGISTRY: Dict[str, Any] = {
     "transfer": Transfer,
     "invalidaction": None,
     "recrystallize": None,
-    "followotherprocedure": None
-
+    "followotherprocedure": None,
 }
 AQUEOUS_REGISTRY: List[str] = ["aqueous", "aq", "hydrophilic", "water", "aquatic"]
 ORGANIC_REGISTRY: List[str] = ["organic", "org", "hydrophobic"]
@@ -2161,26 +2388,21 @@ PRECIPITATE_REGISTRY: List[str] = [
     "filter cake",
     "sludge",
     "solid",
-    "powder"
+    "powder",
 ]
-FILTER_REGISTRY: List[str] = [
-    "filtrate",
-    "filter",
-    "filtration",
-    "filtering"
-]
+FILTER_REGISTRY: List[str] = ["filtrate", "filter", "filtration", "filtering"]
 CENTRIFUGATION_REGISTRY: List[str] = [
     "centrifuge",
     "centrifugation",
     "centrifugally",
     "centrifugal",
-    "centrifugate"
+    "centrifugate",
 ]
 EVAPORATION_REGISTRY: List[str] = [
     "evaporation",
     "evaporate",
     "evaporator",
-    "concentrate"
+    "concentrate",
 ]
 MICROWAVE_REGISTRY: List[str] = ["microwave", "microwaves"]
 PH_REGISTRY: List[str] = ["ph"]
