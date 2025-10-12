@@ -112,12 +112,6 @@ class ModelVLM(BaseModel):
                 max_model_len=self.model_parameters["max_model_len"],
                 gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
                 seed=self.model_parameters["seed"],
-                multimodal_config={
-                    image_input_type="pixel_values",
-                    image_token_id=self.model_parameters["image_token_id"],
-                    image_input_shape=self.model_parameters["image_input_shape"],
-                    image_feature_size=self.model_parameters["image_feature_size"],
-                }
             )
 
             print("Ended Model Loading")
@@ -176,7 +170,7 @@ class ModelVLM(BaseModel):
         outputs: list[RequestOutput] = self.model.generate(new_prompt)
         final_response: str = ""
         for o in outputs:
-            final_response += o[1][0][0].text
+            final_response = o.outputs[0].text
             break
         return final_response
 
@@ -211,6 +205,6 @@ class ModelVLM(BaseModel):
         outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt)
         final_response: str = ""
         for o in outputs:
-            final_response += o[1][0][0].text
+            final_response = o.outputs[0].text
             break
         return final_response
