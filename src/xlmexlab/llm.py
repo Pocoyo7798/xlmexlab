@@ -97,7 +97,7 @@ class ModelVLM(BaseModel):
     model_library: str = "vllm"
     model: Optional[VLLM] = None
     params: Any = None
-    
+
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
         if self.model_parameters == {}:
@@ -203,7 +203,7 @@ class ModelVLM(BaseModel):
             }
         ]
 
-        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt)
+        outputs = self.model.generate(prompts=new_prompt)
         final_response: str = ""
         for o in outputs:
             final_response = o.outputs[0].text
