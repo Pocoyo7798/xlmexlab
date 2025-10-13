@@ -203,9 +203,9 @@ class ModelVLM(BaseModel):
             }
         ]
 
-        outputs = self.model.generate(prompts=new_prompt)
+        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt)
         final_response: str = ""
         for o in outputs:
-            final_response = o.outputs[0].text
+            final_response += o[1][0][0].text
             break
         return final_response
