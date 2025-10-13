@@ -96,7 +96,8 @@ class ModelVLM(BaseModel):
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
     model: Optional[VLLM] = None
-
+    params: Any = None
+    
     def vllm_load_model(self) -> None:
         """Load a model using vllm library"""
         if self.model_parameters == {}:
