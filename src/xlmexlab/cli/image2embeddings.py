@@ -11,9 +11,9 @@ from xlmexlab.embeddings import EmbeddingExtractor
 
 @click.command()
 @click.argument("image_folder", type=str)
-@click.argument("output_npy«z_file", type=str)
+@click.argument("output_npz_file", type=str)
 
-def image2embeddings(image_folder: str, output_npy_file: str):
+def image2embeddings(image_folder: str, output_npz_file: str):
     extractor = EmbeddingExtractor()
 
     embeddings = []
