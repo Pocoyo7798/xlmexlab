@@ -29,7 +29,7 @@ def image2embeddings(image_folder: str, output_npy_file: str):
                 filenames.append(fname)
                 print(f"Extracted embedding for {fname}")
             except Exception as e:
-                print(f"Failed to extract embedding for {fname}: {e}")~
+                print(f"Failed to extract embedding for {fname}: {e}")
 
     if len(embeddings) == 0:
         print("No valid images found. Exiting.")
