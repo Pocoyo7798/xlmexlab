@@ -22,7 +22,7 @@ In this repository you have multiple extraction pipelines available. Every pipel
 --prompt_template_path
 --prompt_schema_path
 ```
-Right now we support any hugginface model supported by the [vllm](https://docs.vllm.ai/en/v0.7.0/models/supported_models.html) python library. You can define the model you want to run by passing the model name on huggingface or the model folder on your computer on the ```--llm_model_name``` argument. The improve the performance of any pre-trained model you can rely on two things. First you can set the model parameters as temperature and top p passing a file containing the parameters such a [this one](src/xlmexlab/resources/vllm_default_params.json) on the ```--llm_model_parameters_path``` argument. The performance of a model is also improved by passing the correct prompt template file. Multiple models already have the correct prompt template associated with their name. You can find the list [here](src/xlmexlab/prompt.py) under the ```TEMPLATE_REGISTRY```. If you want to use custom template, download this file, change the content of the "template" key, based on what your need and then pass the new prompt template path on the ```--prompt_template_path``` argument.  Finnaly the prompt is defined on a schema file that can be passed on the ```--prompt_schema_path```. The prompt is divided in 6 parts:
+Right now we support any hugginface model supported by the [vllm](https://docs.vllm.ai/en/v0.7.0/models/supported_models.html) python library. You can define the model you want to run by passing the model name on huggingface or the model folder on your computer on the ```--llm_model_name``` argument. The improve the performance of any pre-trained model you can rely on two things. First you can set the model parameters as temperature and top p passing a file containing the parameters such a [this one](src/xlmexlab/resources/model_parameters/vllm_default_params.json) on the ```--llm_model_parameters_path``` argument. The performance of a model is also improved by passing the correct prompt template file. Multiple models already have the correct prompt template associated with their name. You can find the list [here](src/xlmexlab/prompt.py) under the ```TEMPLATE_REGISTRY```. If you want to use custom template, download [this file](src/xlmexlab/resources/template/ibm_granite3_default_template.json), change the content of the "template" key, based on what your need and then pass the new prompt template path on the ```--prompt_template_path``` argument.  Finnaly the prompt is defined on a schema file that can be passed on the ```--prompt_schema_path```. The prompt is divided in 6 parts:
 
 * **Expertise**: Define the closest field related to your problem.
 * **Initialization**: Give general tips for the LLM answer.
@@ -35,19 +35,58 @@ Right now we support any hugginface model supported by the [vllm](https://docs.v
   * **Format**:Give an example of the format.
 * **Conclusion**: End your prompt giving the last details and take the opportunity to be kind.
 
-You can find multiple explamples of prompt schemas [here](src/xlmexlab/resources). Now lets look at all the pipelines you have available now!
+You can find multiple explamples of prompt schemas [here](src/xlmexlab/resources/schemas). Now lets look at all the pipelines you have available now!
 ### Paragraph Classification
 Paragraph classification consists in identifying as True or False if the paragraph is in a certain class. For example you can use it to paragraphas cotnaining experimental procedures from other paragraphs. You can run it in the following way:
 ```bash
 xlmexlab-paragraph_classifier --type "n2_physisorption" pathe_to_paragraphs.txt path_to_results.txt
 ```
-The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt file with True or False in each line. Right now there are 3 options for the ```--type``` argument implemented: 'n2_physisorption' to identify nitrogen physorption experimental procedures paragraphs, 'ftir_pyridine' to identity FTIR spectroscopy with adsorbed pyridine experimental procedures pragraphs and 'desilication_dealumination' to identify desilication and dealumination experiemetanl procedures paragraphs. You can run it for other by passing a new prompt on the ```--prompt_schema_path``` argument. You can find a example of a clssifying prompt [here](src/xlmexlab/resources/classify_n2_physisorption_schema.json)
+The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt file with True or False in each line. Right now there are 3 options for the ```--type``` argument implemented: 'n2_physisorption' to identify nitrogen physorption experimental procedures paragraphs, 'ftir_pyridine' to identity FTIR spectroscopy with adsorbed pyridine experimental procedures pragraphs and 'desilication_dealumination' to identify desilication and dealumination experiemetanl procedures paragraphs. You can run it for other by passing a new prompt on the ```--prompt_schema_path``` argument. You can find a example of a clssifying prompt [here](src/xlmexlab/resources/schemas/classify_n2_physisorption_schema.json)
 ### Action Extraction
 Action Extraction consists in extracting a sequence of experimental actions that describe the procedure present in the paragraph. To apply run the following line:
 ```bash
 xlmexlab-text2actions --actions_type materials  path_to_paragraphs.txt path_to_results.txt
 ```
-The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/xlmexlab/resources/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```None```, otherwise the post processing of that field will be aplied on the model response. If you want to run the pipeline on a subset of the existing action sets you just need to remove the action that you do not want from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/xlmexlab/actions.py). To create a complete new action set you can contact us for further colaborations.
+The input should be a .txt file containing a different paragraph in each line, while the output is also a .txt with a list of actions as python dictionaries. Right now you have 4 options for the ```--actions_type```: 'organic' that uses the the action set defined [here](https://www.nature.com/articles/s41467-020-17266-6), 'pistachio' that uses the same action set from organic with small changes to adapt to the [pistachio dataset](https://www.nextmovesoftware.com/pistachio.html), sac that uses the action set defined [here](https://www.nature.com/articles/s41467-023-43836-5) and "materials" that uses the action set defined [here](https://research.ibm.com/publications/catalysts-synthesis-procedures-extraction-from-synthesis-paragraphs-using-large-language-models). An example of a action extraction prompt is available [here](src/xlmexlab/resources/schemas/material_synthesis_actions_schema.json). Note that if you want to not use any post processing for your model response you need to set the ```--actions_type``` argument to ```Custom```, otherwise the post processing of that field will be aplied on the model response. With the ```--actions_type``` argument set to ```Custom``` the action set sued is controled on the prompt level, allowing you to control the action just by removing and adding actions from the prompt. To augment an existing action set you need to add the new action at the respective action registry [here](src/xlmexlab/actions.py). To create a complete new action set you can contact us for further colaborations. All the actions that can be used right now are present in the following table:
+
+| Action    | Description | Available Words for Prompt |
+| -------- | ------- | ------- |
+| Add | Add a substance to the mixture | add, disperse |
+| AcidTreatment | Treatment were a mterial is mixed with an acid solution | acidtreatment |
+| AlkalineTreatment | Treatment were a mterial is mixed with an base solution | alkalinetreatment |
+| CollectLayer | Select aqueous or organic fraction(s) | collectlayer, collect |
+| Concentrate | Evaporate the solvent | concentrate, evaporate |
+| Crystallization | Thermal treatment that generates crystals | crystallization |
+| Degas | Purge the  mixture with a gas | degas |
+| Dry | Drying of a mixture | dry |
+| DrySolid | Dry a solid | drysolid |
+| DrySolution | Dry an organic solution with a desiccant | drysolution |
+| Extract | Transfer compound into a different solvent | extract |
+| Grind | Break the material into smaller particles | grind |
+| IonExchange | Treatment were a mterial is mixed with an neutral salt solution | ionexchange, ion-exchange |
+| MakeSolution | Mix several substances to generate a mixture or solution
+ | makesolution, makemixture |
+| NewSolution | Indication that a new soltion started | newsolution, newmixture |
+| Partition | Add two immiscible solvents for subsequent phase separation | partition |
+| PhaseSeparation | Separate the mixture creating an Filter or Centrifugate action if its about solid-liquid separation | phaseseparation, filter, centrifugate |
+| PH | Change the pH of the reaction mixture
+ | adjustph |
+| Purify | Purification (chromatography) | purify |
+| Quench | Stop the reaction by adding a substance or changing temperature | quench |
+| Recrystallize | Recrystallize a solid from a solvent or mixture of solvents | recystallize |
+| ReduceTemperature | Creates a SetTemperature, if the temperature is not mentions, will set it as "cool" | reducetemperature |
+| reflux | Reflux the reaction mixture | reflux |
+| Repeat | Indicate repetion of the rpevious actions | repeat |
+| Separate | Separate the mixture creating adding the separation type in the action parameters | separate |
+| SetTemperature | Change the temperature of the reaction mixture | settemperature, changetemperature |
+| Sieve | Screen the particles by size | sieve |
+| Sonicate | Agitate the solution with sound waves
+ | sonicate |
+| ThermalTreatment | Aplication of high temperatures to a material | thermaltreatment, posttreatment, calcination, calcine, carbonize, reduce |
+| Transfer | Move the mixture to a new recipient | transfer |
+| Triturate | Triturate the residue | triturate |
+| Wait | Leave the mixture to stand for a specified duration | wait |
+| Wash | Wash the solid after separation | wash |
 
 ###Sample Finder
 The extraction pipeline is Work in Progress
@@ -57,7 +96,7 @@ Table extraction consists in extracting data from samples or experiments present
 ```bash
 xlmexlab-table2data --type catalyst_characterization  image_folder_path path_to_results.txt
 ```
-The input should be a folder containing the table images, while the output is a .txt files containing a list of dictionaries containing the info associated to each samples/experiment. Right now, only one option for ```--type``` argument, that is used to extract data from tables containing characterization data from heteregeneous catalysts. To apply it to other kind of tables, you just need to pass a .json file containing the a new table schema on ```--table_schema_path``` argument. The schema should have a structure like [this](src/xlmexlab/randomization.py), where for each type of data you want to extract you need to identify the possible keywords and units associated with it.
+The input should be a folder containing the table images, while the output is a .txt files containing a list of dictionaries containing the info associated to each samples/experiment. Right now, only one option for ```--type``` argument, that is used to extract data from tables containing characterization data from heteregeneous catalysts. To apply it to other kind of tables, you just need to pass a .json file containing the a new table schema on ```--table_schema_path``` argument. The schema should have a structure like [this](src/xlmexlab/resources/schemas/table_extraction_schema.json), where for each type of data you want to extract you need to identify the possible keywords and units associated with it.
 
 ###Graphic Extraction
 
@@ -85,7 +124,7 @@ You can also find the reference files in [here](src/xlmexlab/resources/datasets)
 
 ## **Creating New Pipelines**
 
-The xlmexlab tool comes with a bunch of parsers based on regex for you to create your own extraction tool. In this part we will give you an example on how create one. Note all the files used in the example are [here](put_link_here.com) So, imagine that you want to create a tool to identify the alkaline treatment temperature used in the following procedure:
+The xlmexlab tool comes with a bunch of parsers based on regex for you to create your own extraction tool. In this part we will give you an example on how create one. Note all the files used in the example are [here](src/xlmexlab/resources/example) So, imagine that you want to create a tool to identify the alkaline treatment temperature used in the following procedure:
 
 ```diff
 "The alkaline treatment process was carried out using a 0.2 mol at 338 K. L-1 NaOH solution. In all experiments, 1 g of ZSM-5 zeolite and 100 mL of solution were used. The duration of the process was limited to 30 and 10 min for conventional electric and microwave (500 W) heating’s, respectively."
@@ -139,9 +178,9 @@ Obviously different extraction pipelines will require different parser or a comb
 
 | Parser    | Description |
 | -------- | ------- |
-| ParametersParser  | Used to find values associated with basic units as temperetura, time, mass or volume. For using it you need to set a file like [this](src/xlmexlab/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
+| ParametersParser  | Used to find values associated with basic units as temperetura, time, mass or volume. For using it you need to set a file like [this](src/xlmexlab/resources/parsing_parameteres/synthesis_parsing_parameters.json) containing the units that you want to consider |
 | ListParametersParser | Used to find seuqence of number in text like "The treatment was performe at **10, 30 and 60** min"|
-| ComplexParametersParser  | Used to find values associated with complex units (that can be formed from basic one) such as concentration, heating speed, flow rates and stirring speed. For using it you need to set a file like [this](src/xlmexlab/resources/synthesis_parsing_parameters.json) containing the units that you want to consider |
+| ComplexParametersParser  | Used to find values associated with complex units (that can be formed from basic one) such as concentration, heating speed, flow rates and stirring speed. For using it you need to set a file like [this](src/xlmexlab/resources/parsing_parameteres/synthesis_parsing_parameters.json) containing the units that you want to consider |
 | ActionsParser  | Used to separate action and respective context from text, by passing the respective list of action on your action set |
 | KeywordSearching  | Used to find keywords defined in a python list |
 | SchemaParser  | Used to find and extract specfific schema patterns that you dfined on your prompt. For example "The chemical substance information is: **{'name': NaOH, 'quantity': 2 g}**" by specifying "{" and "}" as limiter and "name" and "quantity" as atributes you can separate the dicitoonary from the text a get the value in each key.|

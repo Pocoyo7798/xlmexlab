@@ -1,12 +1,13 @@
 import ast
+import re
 from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional, Set
-import re
-from xlmexlab.parser import KeywordSearching
 
 import numpy as np
 from Levenshtein import ratio
 from pydantic import BaseModel
+
+from xlmexlab.parser import KeywordSearching
 
 
 class Evaluator(BaseModel):
@@ -18,14 +19,19 @@ class Evaluator(BaseModel):
         self._keyword_parser = KeywordSearching(keywords_list=words_list)
         self._keyword_parser.model_post_init(False)
 
-    def evaluate(self, tp: int, fp:int, fn:int) -> Dict[str, float]:
+    def evaluate(self, tp: int, fp: int, fn: int) -> Dict[str, float]:
         if tp == 0:
             precision: float = 0
             recall: float = 0
             f_score: float = 0
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
+        if tp == 0:
+            precision = 0
+            recall = 0
+            f_score = 0
+        else:
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            f_score = 2 * precision * recall / (precision + recall)
         return {"precision": precision, "recall": recall, "f-score": f_score}
 
     def transform_chemical_name(self, name: str):
@@ -37,8 +43,10 @@ class Evaluator(BaseModel):
             name = name.replace(keyword, CHEMICALS_REGISTRY[keyword])
         name = "".join(dict.fromkeys(name))
         return name.replace(" ", "")
-    
-    def evaluate_string_list(self, test_list: List[str], ref_list: List[str], threshold: float = 0.9) -> Dict[str, int]:
+
+    def evaluate_string_list(
+        self, test_list: List[str], ref_list: List[str], threshold: float = 0.9
+    ) -> Dict[str, int]:
         tp: int = 0
         fp: int = len(test_list)
         fn: int = len(ref_list)
@@ -54,8 +62,11 @@ class Evaluator(BaseModel):
                     del ref_list[i]
                     break
                 i += 1
-        return {"true_positive": tp, "false_positive": max(0, fp), "false_negative": max(0, fn)}
-    
+        return {
+            "true_positive": tp,
+            "false_positive": max(0, fp),
+            "false_negative": max(0, fn),
+        }
 
     def exist_action_in_list(
         self,
@@ -75,35 +86,61 @@ class Evaluator(BaseModel):
         """
         i = 0
         for ref_action in list_of_actions:
-            if SequenceMatcher(None, str(action), str(ref_action)).ratio() >= threshold and action["action"] == ref_action["action"]:
+            if (
+                SequenceMatcher(None, str(action), str(ref_action)).ratio() >= threshold
+                and action["action"] == ref_action["action"]
+            ):
                 if action["action"] in set(["Stir", "Wait"]):
-                    if ref_action["content"]["duration"] == action["content"]["duration"]:
+                    if (
+                        ref_action["content"]["duration"]
+                        == action["content"]["duration"]
+                    ):
                         return True, i
-                    ref_duration = re.findall(r'\d+', str(ref_action["content"]["duration"]))
-                    duration = re.findall(r'\d+', str(action["content"]["duration"]))
+                    ref_duration = re.findall(
+                        r"\d+", str(ref_action["content"]["duration"])
+                    )
+                    duration = re.findall(r"\d+", str(action["content"]["duration"]))
                     if len(ref_duration) > 0 and len(duration) > 0:
                         if float(ref_duration[0]) == float(duration[0]):
                             return True, i
                 elif action["action"] == "Add":
-                    ref_chemical_name: str = self.transform_chemical_name(ref_action["content"]["material"]["name"])
-                    chemical_name: str = self.transform_chemical_name(action["content"]["material"]["name"])
-                    if SequenceMatcher(None, chemical_name, ref_chemical_name).ratio() > 0.5:
+                    ref_chemical_name: str = self.transform_chemical_name(
+                        ref_action["content"]["material"]["name"]
+                    )
+                    chemical_name: str = self.transform_chemical_name(
+                        action["content"]["material"]["name"]
+                    )
+                    if (
+                        SequenceMatcher(None, chemical_name, ref_chemical_name).ratio()
+                        > 0.5
+                    ):
                         return True, i
                 elif action["action"] == "Separate":
                     ref_phase: str = ref_action["content"]["phase_to_keep"]
                     phase: str = action["content"]["phase_to_keep"]
                     if ref_phase == phase:
                         return True, i
-                elif action["action"] in set(["ChangeTemperature", "Crystallization", "Dry", "ThermalTreatment", "SetTemperature"]):
+                elif action["action"] in set(
+                    [
+                        "ChangeTemperature",
+                        "Crystallization",
+                        "Dry",
+                        "ThermalTreatment",
+                        "SetTemperature",
+                    ]
+                ):
                     ref_temp = str(ref_action["content"]["temperature"])
                     temp = str(action["content"]["temperature"])
-                    if SequenceMatcher(None, temp.strip(), ref_temp.strip()).ratio() > 0.25:
+                    if (
+                        SequenceMatcher(None, temp.strip(), ref_temp.strip()).ratio()
+                        > 0.25
+                    ):
                         return True, i
                 else:
                     return True, i
             i = i + 1
         return False, i
-    
+
     def exist_chemical_in_list(
         self,
         chemical: Optional[Dict[str, Any]],
@@ -117,13 +154,19 @@ class Evaluator(BaseModel):
         chemical_name = self.transform_chemical_name(chemical_name)
         i = 0
         for ref_chemical in list_of_chemicals:
-            if SequenceMatcher(None, str(chemical), str(ref_chemical)).ratio() >= threshold:
+            if (
+                SequenceMatcher(None, str(chemical), str(ref_chemical)).ratio()
+                >= threshold
+            ):
                 if ref_chemical is None:
                     ref_chemical_name: str = "None"
                 else:
                     ref_chemical_name: str = str(ref_chemical["name"])
                 ref_chemical_name = self.transform_chemical_name(ref_chemical_name)
-                if SequenceMatcher(None, chemical_name, ref_chemical_name).ratio() > 0.5:
+                if (
+                    SequenceMatcher(None, chemical_name, ref_chemical_name).ratio()
+                    > 0.5
+                ):
                     return True, i
             i = i + 1
         print(chemical)
@@ -145,9 +188,12 @@ class Evaluator(BaseModel):
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
-        tp = 0
-        fp = 0
-        fn = 0
+        final_tp = 0
+        final_fp = 0
+        final_fn = 0
+        precision_list: List[str] = []
+        recall_list: List[str] = []
+        f_score_list: List[str] = []
         i = 0
         for action_list in test_dataset:
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
@@ -157,8 +203,9 @@ class Evaluator(BaseModel):
                 action_list
             )
             print(i)
-            fn = fn + len(ref_action_list)
-            fp = fp + len(action_list_transformed)
+            ref_actions_amount = len(ref_action_list)
+            fn = len(ref_action_list)
+            fp = len(action_list_transformed)
             found = 0
             for action in action_list_transformed:
                 test, index = self.exist_action_in_list(
@@ -167,14 +214,27 @@ class Evaluator(BaseModel):
                 if test is True:
                     found = found + 1
                     del ref_action_list[index]
-            tp = tp + found
+            for action_t in ref_action_list:
+                if action_t["action"] == "Repeat":
+                    print(action_t)
+            tp = found
             fp = fp - found
             fn = fn - found
+            action_eval_dict = self.evaluate(tp, fp, fn)
+            final_tp = final_tp + tp
+            final_fp = final_fp + fp
+            final_fn = final_fn + fn
+            precision_list.extend([action_eval_dict["precision"]] * ref_actions_amount)
+            recall_list.extend([action_eval_dict["recall"]] * ref_actions_amount)
+            f_score_list.extend([action_eval_dict["f-score"]] * ref_actions_amount)
             i = i + 1
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
-        return {"precision": precision, "recall": recall, "f-score": f_score}
+        final_eval_dict = self.evaluate(final_tp, final_fp, final_fn)
+        return {
+            "precision": final_eval_dict["precision"],
+            "recall": final_eval_dict["recall"],
+            "f-score": final_eval_dict["f-score"],
+            "f-score_std": np.std(f_score_list),
+        }
 
     def evaluate_chemicals(
         self, test_dataset_path: str, threshold: float = 0.8
@@ -183,11 +243,14 @@ class Evaluator(BaseModel):
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
-        tp = 0
-        fp = 0
-        fn = 0
+        final_tp = 0
+        final_fp = 0
+        final_fn = 0
         i = 0
-        reference_chemicals: List[str] = []
+        precision_list: List[str] = []
+        recall_list: List[str] = []
+        f_score_list: List[str] = []
+        amount_of_chemicals: int = 0
         for action_list in test_dataset:
             print(i)
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
@@ -203,11 +266,14 @@ class Evaluator(BaseModel):
                 elif ref_action["action"] == "NewSolution":
                     reference_chemicals.append(ref_action["content"]["solution"])
                 elif ref_action["action"] == "DrySolution":
-                    reference_chemicals.append({'name': ref_action["content"]["material"], 'quantity': []})
+                    reference_chemicals.append(
+                        {"name": ref_action["content"]["material"], "quantity": []}
+                    )
                 elif ref_action["action"] == "Partition":
                     reference_chemicals.append(ref_action["content"]["material_1"])
                     reference_chemicals.append(ref_action["content"]["material_2"])
-            fn = fn + len(reference_chemicals)
+            ref_actions_amount = len(reference_chemicals)
+            fn = ref_actions_amount
             found = 0
             not_found = 0
             for action in action_list_transformed:
@@ -217,21 +283,25 @@ class Evaluator(BaseModel):
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "NewSolution":
                     material = action["content"]["solution"]
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "DrySolution":
-                    material = {'name': action["content"]["material"], 'quantity': []}
+                    material = {"name": action["content"]["material"], "quantity": []}
                     test, index = self.exist_chemical_in_list(
                         material, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 1
                 elif action["action"] == "Partition":
                     material_1 = action["content"]["material_1"]
                     test, index = self.exist_chemical_in_list(
                         material_1, reference_chemicals, threshold=threshold
                     )
+                    amount_of_chemicals += 2
                     if test is None:
                         pass
                     elif test is True:
@@ -271,15 +341,24 @@ class Evaluator(BaseModel):
                     print(material)
                     print(reference_chemicals)
                     not_found = not_found + 1
-            tp = tp + found
-            fp = fp + not_found
+            tp = found
+            fp = not_found
             fn = fn - found
+            action_eval_dict = self.evaluate(tp, fp, fn)
+            final_tp = final_tp + tp
+            final_fp = final_fp + fp
+            final_fn = final_fn + fn
+            precision_list.extend([action_eval_dict["precision"]] * ref_actions_amount)
+            recall_list.extend([action_eval_dict["recall"]] * ref_actions_amount)
+            f_score_list.extend([action_eval_dict["f-score"]] * ref_actions_amount)
             i += 1
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f_score = 2 * precision * recall / (precision + recall)
-        return {"precision": precision, "recall": recall, "f-score": f_score}
-                
+        final_eval_dict = self.evaluate(final_tp, final_fp, final_fn)
+        return {
+            "precision": final_eval_dict["precision"],
+            "recall": final_eval_dict["recall"],
+            "f-score": final_eval_dict["f-score"],
+            "chemicals_amount": amount_of_chemicals,
+        }
 
     def evaluate_actions_order(self, test_dataset_path: str) -> Dict[str, Any]:
         """evaluate the sequence of actions of a dataset
@@ -299,6 +378,7 @@ class Evaluator(BaseModel):
         actions_amount: int = 0
         actions_over_find: int = 0
         actions_lower_find: int = 0
+        amount_of_actions: int = 0
         for action_list in test_dataset:
             ref_action_list: List[Dict[str, Any]] = ast.literal_eval(
                 reference_dataset[i]
@@ -310,6 +390,7 @@ class Evaluator(BaseModel):
             action_sequence: List[str] = [
                 action["action"] for action in action_list_transformed
             ]
+            amount_of_actions += len(action_sequence)
             ref_action_sequence2 = "".join(ref_action_sequence)
             action_sequence2 = "".join(action_sequence)
             accuracy_list.append(ratio(ref_action_sequence2, action_sequence2))
@@ -327,9 +408,15 @@ class Evaluator(BaseModel):
             "accuracy": np.average(accuracy_list),
             "%missing": actions_missing,
             "%%extra": actions_extra,
+            "action_amount": amount_of_actions,
         }
-    
-    def evaluate_chemicals_in_ratios(self, chemicals_list: List[str], molar_ratios_list: List[Dict[str, str]], threshold: float=0.9) -> Dict[str, int]:
+
+    def evaluate_chemicals_in_ratios(
+        self,
+        chemicals_list: List[str],
+        molar_ratios_list: List[Dict[str, str]],
+        threshold: float = 0.9,
+    ) -> Dict[str, int]:
         if len(molar_ratios_list) == 0:
             raise AttributeError("The molar ratio list is empty, nothing to evaluate")
         i: int = 0
@@ -339,7 +426,9 @@ class Evaluator(BaseModel):
         fn_best: int = 0
         for molar_ratio in molar_ratios_list:
             ref_chemicals: List[str] = list(molar_ratio.keys())
-            result = self.evaluate_string_list(chemicals_list, ref_chemicals, threshold=threshold)
+            result = self.evaluate_string_list(
+                chemicals_list, ref_chemicals, threshold=threshold
+            )
             test = False
             if tp_best < result["true_positive"]:
                 test = True
@@ -357,9 +446,19 @@ class Evaluator(BaseModel):
                 fp_best = result["false_positive"]
                 fn_best = result["false_negative"]
             i += 1
-        return {"true_positive": tp_best, "false_positive": fp_best, "false_negative": fn_best, "index": i_best}
-    
-    def evaluate_ratio(self, test_ratio: Dict[str, Any], ref_ratio: Dict[str, Any], threshold: float=0.9):
+        return {
+            "true_positive": tp_best,
+            "false_positive": fp_best,
+            "false_negative": fn_best,
+            "index": i_best,
+        }
+
+    def evaluate_ratio(
+        self,
+        test_ratio: Dict[str, Any],
+        ref_ratio: Dict[str, Any],
+        threshold: float = 0.9,
+    ):
         test_keys: List[str] = list(test_ratio.keys())
         ref_keys: List[str] = list(ref_ratio.keys())
         tp: int = 0
@@ -368,7 +467,7 @@ class Evaluator(BaseModel):
         for test_key in test_keys:
             test_value: str = str(test_ratio[test_key])
             i = 0
-            ref_value: Optional[str] = None 
+            ref_value: Optional[str] = None
             for ref_key in ref_keys:
                 if test_key == ref_key:
                     ref_value = str(ref_ratio[ref_key])
@@ -376,14 +475,25 @@ class Evaluator(BaseModel):
                 i += 1
             if ref_value is None:
                 pass
-            elif SequenceMatcher(None, test_value.lower(), ref_value.lower()).ratio() > threshold:
+            elif (
+                SequenceMatcher(None, test_value.lower(), ref_value.lower()).ratio()
+                > threshold
+            ):
                 tp += 1
                 fp -= 1
                 fn -= 1
-        return {"true_positive": tp, "false_positive": max(0, fp), "false_negative": max(0, fn)}
-    
+        return {
+            "true_positive": tp,
+            "false_positive": max(0, fp),
+            "false_negative": max(0, fn),
+        }
 
-    def evaluate_molar_ratio_list(self, test_list: List[Dict[str, str]], ref_list: List[Dict[str, str]], threshold: float=0.9):
+    def evaluate_molar_ratio_list(
+        self,
+        test_list: List[Dict[str, str]],
+        ref_list: List[Dict[str, str]],
+        threshold: float = 0.9,
+    ):
         fp: int = len(test_list)
         fn: int = len(ref_list)
         tp_chemicals: int = 0
@@ -396,9 +506,13 @@ class Evaluator(BaseModel):
         for test_ratio in test_list:
             test_chemicals: List[str] = list(test_ratio.keys())
             if len(ref_list) > 0:
-                chemicals_result: Dict[str, Any] = self.evaluate_chemicals_in_ratios(test_chemicals, ref_list, threshold=threshold)
-                ref_ratio =  ref_list[chemicals_result["index"]]
-                ratios_result = self.evaluate_ratio(test_ratio, ref_ratio, threshold=threshold)
+                chemicals_result: Dict[str, Any] = self.evaluate_chemicals_in_ratios(
+                    test_chemicals, ref_list, threshold=threshold
+                )
+                ref_ratio = ref_list[chemicals_result["index"]]
+                ratios_result = self.evaluate_ratio(
+                    test_ratio, ref_ratio, threshold=threshold
+                )
                 del ref_list[chemicals_result["index"]]
                 fn -= 1
                 fp -= 1
@@ -410,14 +524,22 @@ class Evaluator(BaseModel):
                 fn_ratios += ratios_result["false_negative"]
                 j += 1
         if fp > 0:
-            for  molar_ratio in test_list[j:]:
+            for molar_ratio in test_list[j:]:
                 fp_chemicals += len(molar_ratio.keys())
                 fp_ratios += len(molar_ratio.keys())
         if fn > 0:
             for molar_ratio in ref_list:
                 fn_chemicals += len(molar_ratio.keys())
                 fn_ratios += len(molar_ratio.keys())
-        return {"true_positive": tp_chemicals, "false_positive": fp_chemicals, "false_negative": fn_chemicals}, {"true_positive": tp_ratios, "false_positive": fp_ratios, "false_negative": fn_ratios}
+        return {
+            "true_positive": tp_chemicals,
+            "false_positive": fp_chemicals,
+            "false_negative": fn_chemicals,
+        }, {
+            "true_positive": tp_ratios,
+            "false_positive": fp_ratios,
+            "false_negative": fn_ratios,
+        }
 
     def evaluate_molar_ratio(self, test_dataset_path: str):
         with open(self.reference_dataset_path, "r") as f:
@@ -435,18 +557,18 @@ class Evaluator(BaseModel):
         fp_equations: int = 0
         fn_equations: int = 0
         for molar_dict in test_dataset:
-            ref_molar_dict: Dict[str, Any] = ast.literal_eval(
-                reference_dataset[i]
-            )
-            test_molar_dict: Dict[str, Any] = ast.literal_eval(
-                molar_dict
-            )
-            molar_ratio_test: List[Dict[str,str]] = test_molar_dict["molar_ratios"]
-            molar_ratio_ref: List[Dict[str,str]] = ref_molar_dict["molar_ratios"]
+            ref_molar_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
+            test_molar_dict: Dict[str, Any] = ast.literal_eval(molar_dict)
+            molar_ratio_test: List[Dict[str, str]] = test_molar_dict["molar_ratios"]
+            molar_ratio_ref: List[Dict[str, str]] = ref_molar_dict["molar_ratios"]
             equations_test: List[str] = test_molar_dict["equations"]
             equations_ref: List[str] = ref_molar_dict["equations"]
-            chemicals_results, ratios_results = self.evaluate_molar_ratio_list(molar_ratio_test, molar_ratio_ref, threshold=0.9)
-            equations_results: Dict[str, Any] = self.evaluate_string_list(equations_test, equations_ref)
+            chemicals_results, ratios_results = self.evaluate_molar_ratio_list(
+                molar_ratio_test, molar_ratio_ref, threshold=0.9
+            )
+            equations_results: Dict[str, Any] = self.evaluate_string_list(
+                equations_test, equations_ref
+            )
             tp_chemicals += chemicals_results["true_positive"]
             fp_chemicals += chemicals_results["false_positive"]
             fn_chemicals += chemicals_results["false_negative"]
@@ -457,7 +579,11 @@ class Evaluator(BaseModel):
             fp_equations += equations_results["false_positive"]
             fn_equations += equations_results["false_negative"]
             i += 1
-        return {"chemicals" : self.evaluate(tp_chemicals, fp_chemicals, fn_chemicals), "ratios" : self.evaluate(tp_ratios, fp_ratios, fn_ratios), "equations" : self.evaluate(tp_equations, fp_equations, fn_equations)}
+        return {
+            "chemicals": self.evaluate(tp_chemicals, fp_chemicals, fn_chemicals),
+            "ratios": self.evaluate(tp_ratios, fp_ratios, fn_ratios),
+            "equations": self.evaluate(tp_equations, fp_equations, fn_equations),
+        }
 
     def evaluate_classifier(self, test_dataset_path: str):
         with open(self.reference_dataset_path, "r") as f:
@@ -497,9 +623,7 @@ class Evaluator(BaseModel):
             ref_sample_list: List[Dict[str, Any]] = ast.literal_eval(
                 reference_dataset[i]
             )
-            test_sample_list: List[Dict[str, Any]] = ast.literal_eval(
-                sample_list
-            )
+            test_sample_list: List[Dict[str, Any]] = ast.literal_eval(sample_list)
             if max(0, len(ref_sample_list) - len(test_sample_list)) > 0:
                 print(max(0, len(ref_sample_list) - len(test_sample_list)))
                 print("Reference Samples")
@@ -514,8 +638,13 @@ class Evaluator(BaseModel):
             count += 1
             i += 1
         return self.evaluate(true_positive, false_positive, false_negative)
-    
-    def evaluate_dict_data(self, dictionary: Dict[str, Any], ref_dictionary: Dict[str, Any], threshold: float = 0.8):
+
+    def evaluate_dict_data(
+        self,
+        dictionary: Dict[str, Any],
+        ref_dictionary: Dict[str, Any],
+        threshold: float = 0.8,
+    ):
         tp: int = 0
         fp: int = 0
         fn: int = 0
@@ -525,7 +654,9 @@ class Evaluator(BaseModel):
             try:
                 data_list: List[str] = dictionary[key]
                 ref_data_list: List[str] = ref_dictionary[key]
-                evaluation_results: Dict[str, Any] = self.evaluate_string_list(data_list, ref_data_list, threshold= threshold)
+                evaluation_results: Dict[str, Any] = self.evaluate_string_list(
+                    data_list, ref_data_list, threshold=threshold
+                )
                 tp += evaluation_results["true_positive"]
                 fp += evaluation_results["false_positive"]
                 fn += evaluation_results["false_negative"]
@@ -535,30 +666,43 @@ class Evaluator(BaseModel):
         for key in ref_keys:
             fn += len(ref_dictionary[key])
         return {"true_positive": tp, "false_positive": fp, "false_negative": fn}
-    
-    def verify_dict_in_list(self, dictionary: Dict[str, Any], dictionary_list: List[Dict[str, Any]], threshold: float = 0.8):
+
+    def verify_dict_in_list(
+        self,
+        dictionary: Dict[str, Any],
+        dictionary_list: List[Dict[str, Any]],
+        threshold: float = 0.8,
+    ):
         dictionary_keys = list(dictionary.keys())
         i: int = 0
         final_index: Optional[int] = None
+        test_value = 0
         for entry in dictionary_list:
-            test = False
             for key in dictionary_keys:
                 try:
                     dictionary_value: List[str] = dictionary[key]
                     entry_value = entry[key].copy()
-                    comparison_results: Dict[str, Any] = self.evaluate_string_list(dictionary_value, entry_value, threshold= threshold)
-                    if comparison_results["false_negative"] == 0 and comparison_results["false_positive"] == 0:
-                        test = True
-                        break
+                    comparison_results: Dict[str, Any] = self.evaluate_string_list(
+                        dictionary_value, entry_value, threshold=threshold
+                    )
+                    test_value += comparison_results["true_positive"]
                 except KeyError:
                     pass
-            if test is True:
+            if test_value > 1:
                 final_index = i
                 break
             i += 1
         return final_index
-    
-    def evaluate_dict_list(self, test_dictionaries: List[Dict[str, Any]], ref_dictionaries: List[Dict[str, Any]], threshold: float = 0.8):
+
+    def evaluate_dict_list(
+        self,
+        test_dictionaries: List[Dict[str, Any]],
+        ref_dictionaries: List[Dict[str, Any]],
+        threshold: float = 0.8,
+    ):
+        tp_sample: int = 0
+        fp_sample: int = 0
+        fn_sample: int = len(ref_dictionaries)
         tp_keys: int = 0
         fp_keys: int = 0
         fn_keys: int = 0
@@ -567,20 +711,33 @@ class Evaluator(BaseModel):
         fn_data: int = 0
         for dictionary in test_dictionaries:
             dictionary_keys = list(dictionary.keys())
-            index = self.verify_dict_in_list(dictionary, ref_dictionaries, threshold=threshold)
+            index = self.verify_dict_in_list(
+                dictionary, ref_dictionaries, threshold=threshold
+            )
             if index is None:
+                print("###############")
+                print(dictionary)
+                print("Compared Dictionaries")
+                for ref_dicionary in ref_dictionaries:
+                    print(ref_dicionary)
+                fp_sample += 1
                 fp_keys += len(dictionary_keys)
                 for key in dictionary_keys:
                     fp_data += len(dictionary[key])
             else:
-                ref_dictionary = ref_dictionaries[index]
+                tp_sample += 1
+                fn_sample -= 1
                 ref_dictionary = ref_dictionaries[index]
                 ref_data_keys = list(ref_dictionary.keys())
-                evaluation_keys:  Dict[str, Any]  = self.evaluate_string_list(dictionary_keys, ref_data_keys, threshold=threshold)
+                evaluation_keys: Dict[str, Any] = self.evaluate_string_list(
+                    dictionary_keys, ref_data_keys, threshold=threshold
+                )
                 tp_keys += evaluation_keys["true_positive"]
                 fp_keys += evaluation_keys["false_positive"]
                 fn_keys += evaluation_keys["false_negative"]
-                evaluation_data: Dict[str, Any]  = self.evaluate_dict_data(dictionary, ref_dictionary, threshold=threshold)
+                evaluation_data: Dict[str, Any] = self.evaluate_dict_data(
+                    dictionary, ref_dictionary, threshold=threshold
+                )
                 tp_data += evaluation_data["true_positive"]
                 fp_data += evaluation_data["false_positive"]
                 fn_data += evaluation_data["false_negative"]
@@ -590,26 +747,47 @@ class Evaluator(BaseModel):
             fn_keys += len(dict_keys)
             for key in dict_keys:
                 fn_data += len(dictionary[key])
-        return {"keys_true_positive": tp_keys, "keys_false_positive": fp_keys, "keys_false_negative": fn_keys, "data_true_positive": tp_data, "data_false_positive": fp_data, "data_false_negative": fn_data}
-    
+        return {
+            "sample_true_positive": tp_sample,
+            "sample_false_positive": fp_sample,
+            "sample_false_negative": max(fn_sample, 0),
+            "keys_true_positive": tp_keys,
+            "keys_false_positive": fp_keys,
+            "keys_false_negative": fn_keys,
+            "data_true_positive": tp_data,
+            "data_false_positive": fp_data,
+            "data_false_negative": fn_data,
+        }
+
     def evaluate_table_extractor(self, test_dataset_path: str, threshold: float = 0.8):
         with open(self.reference_dataset_path, "r") as f:
             reference_dataset: List[str] = f.readlines()
         with open(test_dataset_path, "r") as f:
             test_dataset: List[str] = f.readlines()
+        tp_sample: int = 0
+        fp_sample: int = 0
+        fn_sample: int = 0
         tp_keys: int = 0
         fp_keys: int = 0
         fn_keys: int = 0
         tp_data: int = 0
         fp_data: int = 0
         fn_data: int = 0
-        i : int = 0
+        i: int = 0
         for data in test_dataset:
+            print(i)
             data_dict: Dict[str, Any] = ast.literal_eval(data)
             ref_data_dict: Dict[str, Any] = ast.literal_eval(reference_dataset[i])
+            print(data_dict["table"])
+            print(ref_data_dict["table"])
             test_results: List[Dict[str, Any]] = data_dict["data"]
             ref_results: List[Dict[str, Any]] = ref_data_dict["data"]
-            evaluation_results: Dict[str, int]= self.evaluate_dict_list(test_results, ref_results, threshold=threshold)
+            evaluation_results: Dict[str, int] = self.evaluate_dict_list(
+                test_results, ref_results, threshold=threshold
+            )
+            tp_sample += evaluation_results["sample_true_positive"]
+            fp_sample += evaluation_results["sample_false_positive"]
+            fn_sample += evaluation_results["sample_false_negative"]
             tp_keys += evaluation_results["keys_true_positive"]
             fp_keys += evaluation_results["keys_false_positive"]
             fn_keys += evaluation_results["keys_false_negative"]
@@ -617,100 +795,106 @@ class Evaluator(BaseModel):
             fp_data += evaluation_results["data_false_positive"]
             fn_data += evaluation_results["data_false_negative"]
             i += 1
-        return {"keys": self.evaluate(tp_keys, fp_keys, fn_keys), "data": self.evaluate(tp_data, fp_data, fn_data)}
+        return {
+            "sample": self.evaluate(tp_sample, fp_sample, fn_sample),
+            "keys": self.evaluate(tp_keys, fp_keys, fn_keys),
+            "data": self.evaluate(tp_data, fp_data, fn_data),
+        }
 
-CHEMICALS_REGISTRY = {"solution": "",
-                      "powder": "",
-                      "hot": "",
-                      "cyanide": "CN",
-                      "saturated": "",
-                      "salt": "",
-                      "nanorods": "",
-                      "dispersion": "",
-                      "of": "",
-                      "phosphoric acid": "h3po4",
-                      "chloroplatinic acid": "h2ptcl6∙6h2o",
-                      "sodium tetrachloropalladate": "na2pdcl4",
-                      "vanadium": "v",
-                      "hexachlororhodate": "rhcl6",
-                      "tetra": "4",
-                      "cerium": "ce",
-                      "tri": "3",
-                      "carbon nanotube": "cnt",
-                      "crushed": "",
-                      "aqueous": "",
-                      "⋅": "",
-                      "sample": "",
-                      "dilute": "",
-                      "ethyl acetate": "etoac",
-                      "concentrated": "",
-                      "deionized" : "",
-                      "anhydrous": "",
-                      "sodium": "na",
-                      "dichloromethane": "dcm",
-                      "borohydride": "bh4",
-                      "bicarbonate": "hco3",
-                      "tetrahydrofuran": "thf",
-                      "cetyl trimethyl ammonium bromide" : "ctab",
-                      "sodiu metasilicate": "na2sio3",
-                      "cetrimonium bromide": "ctab",
-                      "water": "h2o",
-                      "fluoride": "f",
-                      "hydroxide": "oh",
-                      "sulfuric acid": "h2so4",
-                      "ii": "",
-                      "iii": "",
-                      "iv": "",
-                      "dioxide": "O2",
-                      "palladium": "pd",
-                      "nitric acid": "hno3",
-                      "hydrochloric acid": "hcl",
-                      "hydrofluoric acid": "hf",
-                      "tetramethylammonium": "tma",
-                      "tetrapropylammonium": "tpa",
-                      "tetrabutylammonium": "tba",
-                      "aluminum sulfate": "al2(so4)3",
-                      "aluminum sulphate": "al2(so4)3",
-                      "titanium(IV) n-butoxide": "ti(obu)4",
-                      "n-butoxide": "obu",
-                      "titanium": "ti",
-                      "ammonium": "nh4",
-                      "nitrate": "no3",
-                      "bromide": "br",
-                      "hydrate": "h2o",
-                      "alumina": "al2o3",
-                      "aluminate": "alo2",
-                      "silica": "sio4",
-                      "metasilicate": "sio3",
-                      "penta": "5",
-                      "hexa": "6",
-                      "silicate": "sio3",
-                      "tetraethylorthosilicate": "teos",
-                      "tetraethyl": "te",
-                      "orthosilicate": "os",
-                      "nickel": "ni",
-                      "ni(ii)": "ni",
-                      "tin(ii)": "sn",
-                      "tin": "sn",
-                      "iron": "fe",
-                      "zinc": "zn",
-                      "chloride": "cl",
-                      "citrate": "c12h10o14",
-                      "triphenylphosphine": "pph3",
-                      "triphenyl phosphine": "pph3",
-                      "oxide": "o",
-                      "aluminium": "al",
-                      "aluminum": "al",
-                      "copper": "cu",
-                      "potassium": "k",
-                      "hydrogen": "h2",
-                      "sulfate": "so4",
-                      "polytetrafluoroethylene": "ptfe",
-                      "cobalt": "co",
-                      "manganese": "mn",
-                      "oac": "ch3co2",
-                      "acetate": "ch3co2",
-                      "iso-propoxide": "o-ch(ch3)2",
-                      "germanium": "ge",
-                      "gold": "au"
+
+CHEMICALS_REGISTRY = {
+    "solution": "",
+    "powder": "",
+    "hot": "",
+    "cyanide": "CN",
+    "saturated": "",
+    "salt": "",
+    "nanorods": "",
+    "dispersion": "",
+    "of": "",
+    "phosphoric acid": "h3po4",
+    "chloroplatinic acid": "h2ptcl6∙6h2o",
+    "sodium tetrachloropalladate": "na2pdcl4",
+    "vanadium": "v",
+    "hexachlororhodate": "rhcl6",
+    "tetra": "4",
+    "cerium": "ce",
+    "tri": "3",
+    "carbon nanotube": "cnt",
+    "crushed": "",
+    "aqueous": "",
+    "⋅": "",
+    "sample": "",
+    "dilute": "",
+    "ethyl acetate": "etoac",
+    "concentrated": "",
+    "deionized": "",
+    "anhydrous": "",
+    "sodium": "na",
+    "dichloromethane": "dcm",
+    "borohydride": "bh4",
+    "bicarbonate": "hco3",
+    "tetrahydrofuran": "thf",
+    "cetyl trimethyl ammonium bromide": "ctab",
+    "sodiu metasilicate": "na2sio3",
+    "cetrimonium bromide": "ctab",
+    "water": "h2o",
+    "fluoride": "f",
+    "hydroxide": "oh",
+    "sulfuric acid": "h2so4",
+    "ii": "",
+    "iii": "",
+    "iv": "",
+    "dioxide": "O2",
+    "palladium": "pd",
+    "nitric acid": "hno3",
+    "hydrochloric acid": "hcl",
+    "hydrofluoric acid": "hf",
+    "tetramethylammonium": "tma",
+    "tetrapropylammonium": "tpa",
+    "tetrabutylammonium": "tba",
+    "aluminum sulfate": "al2(so4)3",
+    "aluminum sulphate": "al2(so4)3",
+    "titanium(IV) n-butoxide": "ti(obu)4",
+    "n-butoxide": "obu",
+    "titanium": "ti",
+    "ammonium": "nh4",
+    "nitrate": "no3",
+    "bromide": "br",
+    "hydrate": "h2o",
+    "alumina": "al2o3",
+    "aluminate": "alo2",
+    "silica": "sio4",
+    "metasilicate": "sio3",
+    "penta": "5",
+    "hexa": "6",
+    "silicate": "sio3",
+    "tetraethylorthosilicate": "teos",
+    "tetraethyl": "te",
+    "orthosilicate": "os",
+    "nickel": "ni",
+    "ni(ii)": "ni",
+    "tin(ii)": "sn",
+    "tin": "sn",
+    "iron": "fe",
+    "zinc": "zn",
+    "chloride": "cl",
+    "citrate": "c12h10o14",
+    "triphenylphosphine": "pph3",
+    "triphenyl phosphine": "pph3",
+    "oxide": "o",
+    "aluminium": "al",
+    "aluminum": "al",
+    "copper": "cu",
+    "potassium": "k",
+    "hydrogen": "h2",
+    "sulfate": "so4",
+    "polytetrafluoroethylene": "ptfe",
+    "cobalt": "co",
+    "manganese": "mn",
+    "oac": "ch3co2",
+    "acetate": "ch3co2",
+    "iso-propoxide": "o-ch(ch3)2",
+    "germanium": "ge",
+    "gold": "au",
 }

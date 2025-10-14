@@ -1,12 +1,13 @@
+import os
 import time
 from typing import List, Optional
-import torch
-import os
 
 import click
+import torch
 
 from xlmexlab.extractor import ActionExtractorFromText
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+from xlmexlab.randomization import seed_everything
 
 
 @click.command()
@@ -20,7 +21,12 @@ from xlmexlab.prompt import TEMPLATE_REGISTRY
 @click.option(
     "--post_processing",
     default=True,
-    help="True if you want to process the LLM output, False otherwise",
+    help="True if you want to post process the LLM output, False otherwise",
+)
+@click.option(
+    "--banned_chemicals",
+    default=True,
+    help="True if you want to eliminate banned chemicals, False otherwise",
 )
 @click.option(
     "--prompt_template_path",
@@ -72,6 +78,7 @@ def text2actions(
     output_file_path: str,
     actions_type: str,
     post_processing: bool,
+    banned_chemicals: bool,
     prompt_template_path: Optional[str],
     chemical_prompt_schema_path: Optional[str],
     prompt_schema_path: Optional[str],
@@ -80,10 +87,11 @@ def text2actions(
     solution_chemical_prompt_schema_path: Optional[str],
     llm_model_name: str,
     llm_model_parameters_path: Optional[str],
-    elementar_actions: bool
+    elementar_actions: bool,
 ):
     torch.cuda.empty_cache()
     start_time = time.time()
+    os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]
@@ -93,6 +101,7 @@ def text2actions(
     extractor: ActionExtractorFromText = ActionExtractorFromText(
         actions_type=actions_type,
         post_processing=post_processing,
+        banned_chemicals=banned_chemicals,
         action_prompt_template_path=prompt_template_path,
         chemical_prompt_template_path=prompt_template_path,
         action_prompt_schema_path=prompt_schema_path,
@@ -102,9 +111,9 @@ def text2actions(
         solution_chemical_prompt_schema_path=solution_chemical_prompt_schema_path,
         llm_model_name=llm_model_name,
         llm_model_parameters_path=llm_model_parameters_path,
-        elementar_actions=elementar_actions
+        elementar_actions=elementar_actions,
     )
-    #extractor.model_post_init(None)
+    # extractor.model_post_init(None)
     with open(text_file_path, "r") as f:
         text_lines: List[str] = f.readlines()
     size = len(text_lines)

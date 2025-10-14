@@ -1,6 +1,6 @@
 import json
 import Levenshtein
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, ClassVar, Dict, List, Set, Tuple
 from pydantic import BaseModel, Field
 
 
@@ -8,22 +8,38 @@ class Evaluator_Graphs(BaseModel):
     reference_data: Dict[str, Any]
     threshold: float = Field(default=0.999)
     distance_threshold: float = Field(default=0.1)
+    all_label_matches: ClassVar[List[Tuple[str, str, str, float]]] = []
+    all_series_matches: ClassVar[List[Tuple[str, str, str, float]]] = []
+    unmatched_items: List[Tuple[str, str, str, str]] = []
+
+
 
     @staticmethod
     def normalize_text(text: str) -> str:
         return text.lower().replace(" ", "")
 
     def evaluate(self, tp: int, fp: int, fn: int) -> Dict[str, float]:
-        if tp == 0:
-            ID: float = 0
-            MD: float = 0
-            ND: float = 0
-        else:
-            ND = fp / (tp + fp)
-            MD = fn / (tp + fn)
-            ID = (fn + fp) / (tp + fn + fp)
-        return {"New detections": ND, "Miss detections": MD, "Incorrect detections": ID}
 
+        if tp + fp == 0:
+            #ND = 0.0
+            CoWP = 0.0
+        else:
+            #ND = fp / (tp + fp)
+            CoWP = tp / (tp + fp)
+        if tp + fn == 0:
+            #MD = 0.0
+            CoSP = 0.0
+        else:
+            #MD = fn / (tp + fn)
+            CoSP = tp / (tp + fn)
+        if tp + fn + fp == 0:
+            #ID = 1.0
+            CD = 1.0
+        else:
+            #ID = (fn + fp) / (tp + fn + fp)
+            CD = tp / (tp + fn + fp)
+        #return {"New detections": ND, "Miss detections": MD, "Incorrect detections": ID}
+        return {"Correct detections over Should have been Predicted": CoSP, "Correct detections over what Was Predicted": CoWP,"Correct Detections": CD}
     @staticmethod
     def load_json(file_path: str) -> Dict[str, Any]:
         with open(file_path, 'r') as file:
@@ -90,10 +106,27 @@ class Evaluator_Graphs(BaseModel):
         matches: List[Tuple[str, str, float]],
         matched_ref_series: Set[int],
         matched_test_series: Set[int],
-    ) -> Tuple[int, int, int]:
+    ) -> Tuple[int, int, int, Dict[str, Any]]: # add
+
         overall_TP = 0
         overall_FP = 0
         overall_FN = 0
+        per_image_points = {} #add
+
+        #add
+        for plot_name in ref_data.keys() | test_data.keys():
+            per_image_points[plot_name] = {
+                "TP": [], 
+                "FP": {
+                    "matched_series":[],
+                    "unmatched_series":[]
+                }, 
+                "FN":{
+                    "matched_series":[],
+                    "unmatched_series":[]
+                }
+            }
+
 
         for ref_series, test_series, _ in matches:
             print(f"\nMatching series '{ref_series}' ↔ '{test_series}'")
@@ -102,6 +135,8 @@ class Evaluator_Graphs(BaseModel):
 
             ref_series_norm = self.normalize_text(ref_series)
             test_series_norm = self.normalize_text(test_series)
+
+            
 
             for plot_name, plot_data in ref_data.items():
                 for key, value in plot_data.items():
@@ -124,17 +159,25 @@ class Evaluator_Graphs(BaseModel):
             print(f"Ref Points ({len(ref_points)}): {ref_points}")
             print(f"Test Points ({len(test_points)}): {test_points}")
 
-            max_x_value = max(ref_x + test_x) if ref_x + test_x else 1.0
-            max_y_value = max(ref_y + test_y) if ref_y + test_y else 1.0
+            max_x_value = abs(max(ref_x + test_x, key=abs, default=1.0))
+            max_y_value = abs(max(ref_y + test_y, key=abs, default=1.0))
 
-            ref_points = [(x / max_x_value, y / max_y_value) for x, y in ref_points]
-            test_points = [(x / max_x_value, y / max_y_value) for x, y in test_points]
+            # Avoid dividing by zero (just in case)
+            max_x_value = max_x_value if max_x_value != 0 else 1.0
+            max_y_value = max_y_value if max_y_value != 0 else 1.0
 
-            FN = len(ref_points)
+            ref_points_raw = list(zip(ref_x, ref_y))
+            test_points_raw = list(zip(test_x, test_y))
+
+            ref_points = [(x / max_x_value, y / max_y_value) for x, y in ref_points_raw]
+            test_points = [(x / max_x_value, y / max_y_value) for x, y in test_points_raw]
+
+            FN = len(ref_points_raw)
             TP = 0
 
             while ref_points:
                 ref_point = ref_points.pop(0)
+                ref_point_raw = ref_points_raw.pop(0)
                 closest_distance = float('inf')
                 closest_test_point = None
                 closest_test_index = None
@@ -148,13 +191,24 @@ class Evaluator_Graphs(BaseModel):
 
                 if closest_test_point is not None:
                     print(f"Matched point {ref_point} ↔ {closest_test_point} (distance={closest_distance:.4f})")
+                    test_point_raw = test_points_raw.pop(closest_test_index)
                     test_points.pop(closest_test_index)
                     FN -= 1
                     TP += 1
+                    per_image_points[plot_name]["TP"].append(
+                        {"ref_point":ref_point_raw,
+                        "test_point":test_point_raw, 
+                        "distance":closest_distance}
+                    )
                 else:
                     print(f"Unmatched reference point: {ref_point}")
+                    per_image_points[plot_name]["FN"]["matched_series"].append({"ref_point": ref_point_raw})
 
-            FP = len(test_points)
+            for leftover in test_points_raw:
+                per_image_points[plot_name]["FP"]["matched_series"].append({"test_point": leftover})
+
+
+            FP = len(test_points_raw)
             print(f"Remaining test points (FP): {test_points}")
             print(f"Series summary: TP={TP}, FP={FP}, FN={FN}")
 
@@ -169,7 +223,11 @@ class Evaluator_Graphs(BaseModel):
                     ref_values = list(plot_data[ref_series].values())
                     ref_points = list(zip(ref_values[0], ref_values[1]))
                     print(f"  Adding FN for {len(ref_points)} unmatched reference points")
-                    overall_FN += len(ref_points)
+                    ref_x, ref_y = list(plot_data[ref_series].values())
+                    ref_points_raw = list(zip(ref_x, ref_y))
+                    for pt in ref_points_raw:
+                        per_image_points[plot_name]["FN"]["unmatched_series"].append({"ref_point": pt})
+                    overall_FN += len(ref_points_raw)
 
         for plot_name, plot_data in test_data.items():
             for test_idx, test_series in enumerate(plot_data.keys()):
@@ -178,10 +236,16 @@ class Evaluator_Graphs(BaseModel):
                     test_values = list(plot_data[test_series].values())
                     test_points = list(zip(test_values[0], test_values[1]))
                     print(f"  Adding FP for {len(test_points)} unmatched test points")
-                    overall_FP += len(test_points)
+                    test_x, test_y = list(plot_data[test_series].values())
+                    test_points_raw = list(zip(test_x, test_y))
+                    for pt in test_points_raw:
+                        per_image_points[plot_name]["FP"]["unmatched_series"].append({"test_point": pt})
+                    overall_FP += len(test_points_raw)
 
         print(f"\nPoint Matching Totals: TP={overall_TP}, FP={overall_FP}, FN={overall_FN}")
-        return overall_TP, overall_FP, overall_FN
+        return overall_TP, overall_FP, overall_FN, per_image_points
+            
+    
 
     def process_plots(self, test_data: Dict[str, Any]) -> Dict[str, int]:
         total_point_TP, total_point_FP, total_point_FN = 0, 0, 0
@@ -190,6 +254,12 @@ class Evaluator_Graphs(BaseModel):
 
         skipped_images = 0
         total_images = len(self.reference_data)
+
+        all_label_matches = []
+        all_series_matches = []
+        unmatched_items = []
+
+        per_image_results = {}
 
         for plot_name in self.reference_data.keys():
             test_plot = test_data.get(plot_name)
@@ -214,19 +284,22 @@ class Evaluator_Graphs(BaseModel):
                 print(f"{plot_name} - Matched Labels:")
                 for ref_l, test_l, ratio in label_matches:
                     print(f"  '{ref_l}' ↔ '{test_l}' (Similarity: {ratio:.3f})")
+                    all_label_matches.extend([(plot_name, ref_l, test_l, ratio) for ref_l, test_l, ratio in label_matches])
 
             unmatched_ref_labels = [label for idx, label in enumerate(ref_labels) if idx not in matched_ref_labels]
             if unmatched_ref_labels:
                 print(f"{plot_name} - Unmatched Reference Labels:")
                 for label in unmatched_ref_labels:
                     print(f"  '{label}'")
+                    unmatched_items.append((plot_name, label, "ref", "label"))
 
             unmatched_test_labels = [label for idx, label in enumerate(test_labels) if idx not in matched_test_labels]
             if unmatched_test_labels:
                 print(f"{plot_name} - Unmatched Test Labels:")
                 for label in unmatched_test_labels:
                     print(f"  '{label}'")
-
+                    unmatched_items.append((plot_name, label, "test", "label"))
+     
             total_label_TP += label_TP
             total_label_FP += label_FP
             total_label_FN += label_FN
@@ -239,30 +312,37 @@ class Evaluator_Graphs(BaseModel):
             )
             print(f"{plot_name} - Series Matching: TP: {series_TP}, FP: {series_FP}, FN: {series_FN}")
             print(f"{plot_name} - Matched Series:")
+            
+            
+
             for ref_s, test_s, ratio in series_matches:
                 print(f"  '{ref_s}' ↔ '{test_s}' (Similarity: {ratio:.3f})")
+                all_series_matches.extend([(plot_name, ref_s, test_s, ratio) for ref_s, test_s, ratio in series_matches])
+
             unmatched_refs = [s for i, s in enumerate(ref_series) if i not in matched_ref_series]
+            for s in unmatched_refs:
+                print(f"{plot_name} - Unmatched Reference Series: '{s}'")
+                unmatched_items.append((plot_name, s, "ref", "series"))
+
             unmatched_tests = [s for i, s in enumerate(test_series) if i not in matched_test_series]
-            if unmatched_refs:
-                print(f"{plot_name} - Unmatched Reference Series:")
-                for s in unmatched_refs:
-                    print(f"  '{s}'")
-            if unmatched_tests:
-                print(f"{plot_name} - Unmatched Test Series:")
-                for s in unmatched_tests:
-                    print(f"  '{s}'")
+            for s in unmatched_tests:
+                print(f"{plot_name} - Unmatched Test Series: '{s}'")
+                unmatched_items.append((plot_name, s, "test", "series"))
+
 
             total_series_TP += series_TP
             total_series_FP += series_FP
             total_series_FN += series_FN
 
-            point_TP, point_FP, point_FN = self.point_matching_accuracy(
+            point_TP, point_FP, point_FN, per_image_points = self.point_matching_accuracy(
                 {plot_name: ref_plot},
                 {plot_name: test_plot},
                 series_matches,
                 matched_ref_series,
                 matched_test_series
             )
+
+            per_image_results[plot_name] = per_image_points.get(plot_name, {})
             print(f"{plot_name} - Point Matching: TP: {point_TP}, FP: {point_FP}, FN: {point_FN}")
             total_point_TP += point_TP
             total_point_FP += point_FP
@@ -286,5 +366,8 @@ class Evaluator_Graphs(BaseModel):
             "Skipped_Images": skipped_images,
             "Total_Images": total_images,
             "Skipped_Percent": round((skipped_images / total_images) * 100, 2),
+            "Matched_Labels": all_label_matches,
+            "Matched_Series": all_series_matches,
+            "Unmatched_Items": unmatched_items,
+            "Per_Image_Results": per_image_results
         }
-

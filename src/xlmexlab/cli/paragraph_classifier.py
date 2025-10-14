@@ -1,13 +1,14 @@
+import os
 import time
 from typing import List, Optional
-import torch
-import importlib_resources
-import os
 
 import click
+import importlib_resources
+import torch
 
 from xlmexlab.extractor import ParagraphClassifier
 from xlmexlab.prompt import TEMPLATE_REGISTRY
+
 
 @click.command()
 @click.argument("text_file_path", type=str)
@@ -52,30 +53,38 @@ def paragraph_classifier(
         pass
     elif type == "n2_physisorption":
         prompt_schema_path = str(
-        importlib_resources.files("xlmexlab")
-        / "resources"
-        / "classify_n2_physisorption_schema.json"
-    )
+            importlib_resources.files("xlmexlab")
+            / "resources/schemas"
+            / "classify_n2_physisorption_schema.json"
+        )
     elif type == "ftir_pyridine":
         prompt_schema_path = str(
-        importlib_resources.files("xlmexlab")
-        / "resources"
-        / "classify_ftiv_pyridine_schema.json"
-    )
+            importlib_resources.files("xlmexlab")
+            / "resources/schemas"
+            / "classify_ftiv_pyridine_schema.json"
+        )
     elif type == "multi_sample":
         prompt_schema_path = str(
-        importlib_resources.files("xlmexlab")
-        / "resources"
-        / "classify_multi_sample_schema.json"
-    )
+            importlib_resources.files("xlmexlab")
+            / "resources/schemas"
+            / "classify_multi_sample_schema.json"
+        )
     elif type == "desilication_dealumination":
         prompt_schema_path = str(
-        importlib_resources.files("xlmexlab")
-        / "resources"
-        / "classify_desilication_dealumination_schema.json"
-    )
+            importlib_resources.files("xlmexlab")
+            / "resources/schemas"
+            / "classify_desilication_dealumination_schema.json"
+        )
+    elif type == "steaming":
+        prompt_schema_path = str(
+            importlib_resources.files("xlmexlab")
+            / "resources/schemas"
+            / "classify_steaming_schema.json"
+        )
     else:
-        raise AttributeError("You need to pass a valid --type or a --prompt_schema_path")
+        raise AttributeError(
+            "You need to pass a valid --type or a --prompt_schema_path"
+        )
     if prompt_template_path is None:
         try:
             name = llm_model_name.split("/")[-1]
@@ -98,9 +107,7 @@ def paragraph_classifier(
         os.remove(output_file_path)
     for text in text_lines:
         print(f"text processed: {count}/{size}")
-        results: str = str(
-            extractor.classify_paragraph(text)
-        )
+        results: str = str(extractor.classify_paragraph(text))
         with open(output_file_path, "a") as f:
             f.write(str(results) + "\n")
         count = count + 1
