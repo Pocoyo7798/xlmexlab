@@ -91,7 +91,7 @@ class ModelLLM(BaseModel):
         return generated_text
 
         
-class ModelVLM(BaseModel):
+class ModelVLM2(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
@@ -207,7 +207,7 @@ class ModelVLM(BaseModel):
             break
         return final_response
 
-class ModelVLM2(BaseModel):
+class ModelVLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
@@ -319,7 +319,7 @@ class ModelVLM2(BaseModel):
             }
         ]
 
-        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt)
+        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt, sampling_params = self.params)
         final_response: str = ""
         for o in outputs:
             final_response += o[1][0][0].text
