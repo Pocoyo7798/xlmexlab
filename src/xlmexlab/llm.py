@@ -324,7 +324,7 @@ class ModelVLM(BaseModel):
         print(outputs)
         final_response: str = ""
         for o in outputs:
-            prompt = o.prompt
-            final_response += o.output[0].text
+            prompt = output.prompt
+            final_response += o[1][0][0].text
             break
         return final_response
