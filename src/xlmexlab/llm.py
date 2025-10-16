@@ -319,9 +319,9 @@ class ModelVLM(BaseModel):
             }
         ]
 
-        outputs: list[RequestOutput] = self.model.generate(prompts=new_prompt, sampling_params = self.params)
+        outputs: list[RequestOutput] = self.model.generate(prompts = new_prompt, sampling_params = self.params)
         final_response: str = ""
         for o in outputs:
-            final_response += o[1][0][0].text
+            final_response += o.outputs[0].text
             break
         return final_response
