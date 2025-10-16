@@ -91,7 +91,7 @@ class ModelLLM(BaseModel):
         return generated_text
 
         
-class ModelVLM2(BaseModel):
+class ModelVLM(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
@@ -207,7 +207,7 @@ class ModelVLM2(BaseModel):
             break
         return final_response
 
-class ModelVLM(BaseModel):
+class ModelVLM2(BaseModel):
     model_name: str
     model_parameters: Dict[str, Any] = {}
     model_library: str = "vllm"
@@ -229,7 +229,7 @@ class ModelVLM(BaseModel):
                 max_model_len=self.model_parameters["max_model_len"],
                 gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
                 seed=self.model_parameters["seed"],
-                max_seq_len_to_capture=8192
+                max_seq_len_to_capture=self.model_parameters["max_seq_len_to_capture"]
             )
 
             print("Ended Model Loading")
