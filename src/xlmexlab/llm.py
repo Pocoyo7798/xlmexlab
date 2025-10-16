@@ -229,6 +229,7 @@ class ModelVLM(BaseModel):
                 max_model_len=self.model_parameters["max_model_len"],
                 gpu_memory_utilization=self.model_parameters["gpu_memory_utilization"],
                 seed=self.model_parameters["seed"],
+                max_seq_len_to_capture=8192
             )
 
             print("Ended Model Loading")
@@ -323,6 +324,7 @@ class ModelVLM(BaseModel):
         print(outputs)
         final_response: str = ""
         for o in outputs:
-            final_response += o[1][0][0].text
+            prompt = output.prompt
+            final_response += o.output[0].text
             break
         return final_response
