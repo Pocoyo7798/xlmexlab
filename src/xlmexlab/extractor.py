@@ -1969,7 +1969,6 @@ class ImageExtractor(BaseModel):
         output = self._vlm_model.run_image_single_prompt_rescale(
             prompt, image_path, scale=scale
         )
-        print(f"Raw Model Output for {image_path}:\n{output}")
 
         self._image_parser.parse(output)
         parsed_output = self._image_parser.get_data_dict()
