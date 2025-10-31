@@ -1988,7 +1988,7 @@ class ImageParser(BaseModel):
                 cleaned[new_key] = value
         return cleaned
 
-    def _filter_na_points(
+    """def _filter_na_points(
         self, data: Dict[str, Dict[str, list]]
     ) -> Dict[str, Dict[str, list]]:
         filtered = {}
@@ -2010,6 +2010,35 @@ class ImageParser(BaseModel):
                     x_filtered.append(x)
                     y_filtered.append(y)
 
+            filtered[series_name] = {x_key: x_filtered, y_key: y_filtered}
+
+        return filtered"""
+
+    def _filter_na_points(
+        self, data: Dict[str, Dict[str, list]]
+    ) -> Dict[str, Dict[str, list]]:
+        filtered = {}
+        for series_name, axes in data.items():
+
+            keys = list(axes.keys())
+            print(len(keys))
+            if len(keys) < 2:
+                continue
+
+            x_key, y_key = keys[0], keys[1]
+            x_vals, y_vals = axes[x_key], axes[y_key]
+            min_len = min(len(x_vals), len(y_vals))
+            x_vals = x_vals[:min_len]
+            y_vals = y_vals[:min_len]
+
+            # Filtra pontos N/A
+            x_filtered, y_filtered = [], []
+            for x, y in zip(x_vals, y_vals):
+                if x is not None and y is not None:
+                    x_filtered.append(x)
+                    y_filtered.append(y)
+
+            # Guarda a série filtrada
             filtered[series_name] = {x_key: x_filtered, y_key: y_filtered}
 
         return filtered
