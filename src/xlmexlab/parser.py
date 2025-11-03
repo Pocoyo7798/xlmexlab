@@ -1883,7 +1883,7 @@ class ImageParser(BaseModel):
                 )
                 parsed_data = self._convert_na_to_null(parsed_data)
                 parsed_data = self._clean_keys(parsed_data)
-                if outer_key is not None and not (len(parsed_data) == 1 and outer_key in parsed_data):
+                if outer_key is not None and len(parsed_data) == 2:
                     parsed_data = {outer_key: parsed_data}
                 self.data_dict = self._filter_na_points(parsed_data)
 
