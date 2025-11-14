@@ -64,13 +64,11 @@ The input should be a .txt file containing a different paragraph in each line, w
 | Extract | Transfer compound into a different solvent | extract |
 | Grind | Break the material into smaller particles | grind |
 | IonExchange | Treatment were a mterial is mixed with an neutral salt solution | ionexchange, ion-exchange |
-| MakeSolution | Mix several substances to generate a mixture or solution
- | makesolution, makemixture |
+| MakeSolution | Mix several substances to generate a mixture or solution| makesolution, makemixture |
 | NewSolution | Indication that a new soltion started | newsolution, newmixture |
 | Partition | Add two immiscible solvents for subsequent phase separation | partition |
 | PhaseSeparation | Separate the mixture creating an Filter or Centrifugate action if its about solid-liquid separation | phaseseparation, filter, centrifugate |
-| PH | Change the pH of the reaction mixture
- | adjustph |
+| PH | Change the pH of the reaction mixture | adjustph |
 | Purify | Purification (chromatography) | purify |
 | Quench | Stop the reaction by adding a substance or changing temperature | quench |
 | Recrystallize | Recrystallize a solid from a solvent or mixture of solvents | recystallize |
@@ -80,8 +78,7 @@ The input should be a .txt file containing a different paragraph in each line, w
 | Separate | Separate the mixture creating adding the separation type in the action parameters | separate |
 | SetTemperature | Change the temperature of the reaction mixture | settemperature, changetemperature |
 | Sieve | Screen the particles by size | sieve |
-| Sonicate | Agitate the solution with sound waves
- | sonicate |
+| Sonicate | Agitate the solution with sound waves | sonicate |
 | ThermalTreatment | Aplication of high temperatures to a material | thermaltreatment, posttreatment, calcination, calcine, carbonize, reduce |
 | Transfer | Move the mixture to a new recipient | transfer |
 | Triturate | Triturate the residue | triturate |
